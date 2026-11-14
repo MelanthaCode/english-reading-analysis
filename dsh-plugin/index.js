@@ -23,6 +23,7 @@ const skillDir = join(packageDir, 'skills', 'english-reading-analysis')
 const ROUTE_PREFIX = '/x-english-reading'
 const PYTHON = process.platform === 'win32' ? 'python' : 'python3'
 const BOOT_REPORT = '/tmp/english-reading-boot.json'
+const EXT_TEXT = ['txt', 'md', 'markdown', 'text', 'csv']
 
 // Only services that must exist for apply() to be meaningful go here.
 // `webServer` is acquired with ctx.inject() below: that callback form is what the
@@ -277,6 +278,67 @@ export function apply(ctx) {
     }
   }
 
+  /** Run a child process and collect stdout, or throw with its stderr. */
+  const runCapture = (command, args) =>
+    new Promise((resolve, reject) => {
+      const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] })
+      let out = ''
+      let err = ''
+      child.stdout.on('data', (chunk) => {
+        out += chunk.toString('utf8')
+      })
+      child.stderr.on('data', (chunk) => {
+        err += chunk.toString('utf8')
+      })
+      child.on('error', reject)
+      child.on('close', (code) => {
+        if (code === 0) resolve(out)
+        else reject(new Error(err.trim() || `${command} exited with ${code}`))
+      })
+    })
+
+  /** .docx is a zip; word/document.xml holds the text. */
+  const docxToText = async (buffer, workDir) => {
+    const file = join(workDir, 'source.docx')
+    await writeFile(file, buffer)
+    const script = [
+      'import zipfile, re, html, sys',
+      'path = sys.argv[1]',
+      'xml = zipfile.ZipFile(path).read("word/document.xml").decode("utf-8", "ignore")',
+      'xml = xml.replace("</w:p>", "\\n").replace("</w:tr>", "\\n")',
+      'text = re.sub(r"<[^>]+>", "", xml)',
+      'sys.stdout.write(html.unescape(text))',
+    ].join('\n')
+    return runCapture(PYTHON, ['-c', script, file])
+  }
+
+  /** Text layer of a PDF, or a clear "no text layer" signal for scans. */
+  const pdfToText = async (buffer, workDir) => {
+    const file = join(workDir, 'source.pdf')
+    await writeFile(file, buffer)
+    let text = ''
+    try {
+      text = await runCapture('pdftotext', ['-enc', 'UTF-8', file, '-'])
+    } catch (error) {
+      return {
+        scanned: false,
+        error:
+          '这台机器没有 pdftotext（poppler），无法读取 PDF 文字。' +
+          'macOS 可 brew install poppler；或把内容粘贴进来。',
+      }
+    }
+    const clean = text.replace(/\u0000/g, '').trim()
+    if (clean.length < 40) {
+      return {
+        scanned: true,
+        error:
+          '这份 PDF 没有文字层（扫描件或图片导出）。面板只能处理文字，' +
+          '请把它作为附件发到对话里，由我直接看图分析。',
+      }
+    }
+    return { text: clean, kind: 'pdf' }
+  }
+
   const renderPdf = async (req, res) => {
     if (req.method !== 'POST') return sendJson(res, 405, { error: 'method not allowed' })
 
@@ -357,8 +419,50 @@ export function apply(ctx) {
     res.end(readTemplateCss())
   }
 
+  const extract = async (req, res) => {
+    if (req.method !== 'POST') return sendJson(res, 405, { error: 'method not allowed' })
+
+    let payload
+    try {
+      payload = JSON.parse(await readBody(req, 48 * 1024 * 1024))
+    } catch {
+      return sendJson(res, 400, { error: 'invalid JSON body' })
+    }
+
+    const name = String(payload?.name || 'file')
+    const buffer = Buffer.from(String(payload?.data || ''), 'base64')
+    if (!buffer.length) return sendJson(res, 400, { error: '空文件' })
+
+    const ext = (name.toLowerCase().match(/\.([a-z0-9]+)$/) || [])[1] || ''
+    if (EXT_TEXT.includes(ext)) {
+      return sendJson(res, 200, { text: buffer.toString('utf8'), kind: 'text' })
+    }
+
+    let work
+    try {
+      work = await mkdtemp(join(tmpdir(), 'english-reading-file-'))
+      if (ext === 'docx') {
+        const text = await docxToText(buffer, work)
+        if (!text.trim()) return sendJson(res, 200, { text: '', kind: 'docx' })
+        return sendJson(res, 200, { text: text.trim(), kind: 'docx' })
+      }
+      if (ext === 'pdf') {
+        const result = await pdfToText(buffer, work)
+        return sendJson(res, result.text ? 200 : 422, result)
+      }
+      return sendJson(res, 415, {
+        error: `不支持的文件类型 .${ext}，目前支持 txt / md / docx / pdf`,
+      })
+    } catch (error) {
+      return sendJson(res, 500, { error: String(error?.message || error) })
+    } finally {
+      if (work) await rm(work, { recursive: true, force: true })
+    }
+  }
+
   const ROUTES = [
     { path: `${ROUTE_PREFIX}/health`, handler: health },
+    { path: `${ROUTE_PREFIX}/extract`, handler: extract },
     { path: `${ROUTE_PREFIX}/style.css`, handler: style },
     { path: `${ROUTE_PREFIX}/analyze`, handler: analyze },
     { path: `${ROUTE_PREFIX}/pdf`, handler: renderPdf },

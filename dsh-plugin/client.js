@@ -32,17 +32,20 @@ window.__ModuleLoader__.load({
     const TEXT_ZH = {
       title: '英语阅读分析',
       subtitle: '英语文章翻译成中文、拆解长难句、给出选择题答案与解析，也可以核对已作答的卷子。',
-      zonePlaceholder: '把英文粘贴到这里，或把 .txt / .md 文件拖进这个框',
+      zonePlaceholder: '把英文粘贴到这里，或拖入 txt / md / Word / PDF',
       chars: '字符',
       clear: '清空',
       start: '开始分析',
       running: '正在分析',
       elapsed: '已用时',
-      note: 'PDF、扫描件、照片请在对话里作为附件发送；这里适合粘贴文字。',
+      note: '支持 txt、md、Word（.docx）、带文字层的 PDF；扫描件与照片请在对话里作为附件发送。',
       empty: '先粘贴英文，或拖入一个文本文件。',
       fileLoaded: '文件已读入',
-      unsupportedFile: '只支持文本文件（.txt / .md）。PDF 或图片请在对话里作为附件发送。',
+      unsupportedFile: '不支持这个格式，目前支持 txt / md / docx / pdf。',
       readFailed: '读取文件失败。',
+      extracting: '正在解析',
+      pickFile: '选择文件',
+      charsReady: '字符',
       failed: '失败',
       download: '下载 PDF',
       preparing: '正在渲染 PDF…',
@@ -55,17 +58,20 @@ window.__ModuleLoader__.load({
     const TEXT_EN = {
       title: 'English Reading Analysis',
       subtitle: 'Translate English passages into Chinese, break down long sentences, and answer multiple-choice questions with explanations — or check a paper you already answered.',
-      zonePlaceholder: 'Paste the English here, or drop a .txt / .md file into this box',
+      zonePlaceholder: 'Paste the English here, or drop txt / md / Word / PDF',
       chars: 'characters',
       clear: 'Clear',
       start: 'Analyse',
       running: 'Analysing',
       elapsed: 'elapsed',
-      note: 'Attach PDFs, scans or photos in the conversation; this panel is for pasted text.',
+      note: 'Accepts txt, md, Word (.docx) and PDFs with a text layer; send scans or photos in the conversation.',
       empty: 'Paste the English first, or drop a text file.',
       fileLoaded: 'File loaded',
-      unsupportedFile: 'Text files only (.txt / .md). Attach PDFs or images in the conversation.',
+      unsupportedFile: 'Unsupported format — txt / md / docx / pdf only.',
       readFailed: 'Could not read that file.',
+      extracting: 'Reading',
+      pickFile: 'Choose file',
+      charsReady: 'characters',
       failed: 'Failed',
       download: 'Download PDF',
       preparing: 'Rendering PDF…',
@@ -298,6 +304,7 @@ window.__ModuleLoader__.load({
       const [status, setStatus] = React.useState(null)
 
       const abortRef = React.useRef(null)
+      const fileRef = React.useRef(null)
       const accRef = React.useRef('')
       const startRef = React.useRef(0)
       const expectedRef = React.useRef(2000)
@@ -349,18 +356,34 @@ window.__ModuleLoader__.load({
       }, [phase])
 
       const readDropped = async (file) => {
-        const name = (file.name || '').toLowerCase()
-        const textual = /\.(txt|md|markdown|text)$/.test(name) || (file.type || '').startsWith('text/')
-        if (!textual) {
-          setStatus({ ok: false, text: t('unsupportedFile') })
-          return
-        }
+        if (!file) return
+        setStatus({ ok: true, text: `${t('extracting')} ${file.name}…` })
         try {
-          setText(await file.text())
+          const buffer = await file.arrayBuffer()
+          const bytes = new Uint8Array(buffer)
+          let binary = ''
+          const chunk = 0x8000
+          for (let i = 0; i < bytes.length; i += chunk) {
+            binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk))
+          }
+          const response = await fetch(`${API}/extract`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ name: file.name, data: btoa(binary) }),
+          })
+          const body = await response.json().catch(() => ({}))
+          if (!response.ok || body.error) {
+            setStatus({ ok: false, text: body.error || `HTTP ${response.status}` })
+            return
+          }
+          setText(body.text || '')
           setFileName(file.name || '')
-          setStatus({ ok: true, text: t('fileLoaded') })
-        } catch {
-          setStatus({ ok: false, text: t('readFailed') })
+          setStatus({
+            ok: true,
+            text: `${file.name} · ${(body.text || '').length} ${t('charsReady')}`,
+          })
+        } catch (error) {
+          setStatus({ ok: false, text: `${t('readFailed')} ${(error && error.message) || error}` })
         }
       }
 
@@ -537,21 +560,30 @@ window.__ModuleLoader__.load({
                   'div',
                   { style: styles.zoneFooter },
                   h('span', null, fileName ? `${fileName} · ${text.length}` : `${text.length} ${t('chars')}`),
-                  text
-                    ? h(
-                        'button',
-                        {
-                          type: 'button',
-                          style: styles.linkButton,
-                          onClick: () => {
-                            setText('')
-                            setFileName('')
-                            setStatus(null)
+                  h(
+                    'span',
+                    { style: { display: 'flex', gap: 14 } },
+                    h(
+                      'button',
+                      { type: 'button', style: styles.linkButton, onClick: () => fileRef.current && fileRef.current.click() },
+                      t('pickFile'),
+                    ),
+                    text
+                      ? h(
+                          'button',
+                          {
+                            type: 'button',
+                            style: styles.linkButton,
+                            onClick: () => {
+                              setText('')
+                              setFileName('')
+                              setStatus(null)
+                            },
                           },
-                        },
-                        t('clear'),
-                      )
-                    : null,
+                          t('clear'),
+                        )
+                      : null,
+                  ),
                 ),
               )
             : null,
