@@ -201,11 +201,10 @@ window.__ModuleLoader__.load({
       docHost: { display: 'block', marginTop: 4 },
     }
 
-    // Two glyphs on the Lucide grid, each about two thirds of the icon height so
-    // they read at the same weight as the shell's other rail icons; the pair sits
-    // close together, 文 a little lower and tilted so they never touch.
-    const GLYPH_A = ['M6.4 4.4 3.4 20', 'M6.4 4.4 9.4 20', 'M4.5 14.6h3.8']
-    const GLYPH_WEN = ['M16.1 6.8 17.1 9.2', 'M12.2 11.4h7.6', 'M12.7 13.9 17.7 20.3', 'M19.1 13.9 14.3 20.3']
+    // 20-unit grid. A spans y 0–14, 文 spans y 6–20 (dropped by 6 and tilted 8°),
+    // so the two interlock horizontally without touching. Stroke 1 in a 20 box.
+    const GLYPH_A = ['M5.6 0.8 1.6 14', 'M5.6 0.8 9.6 14', 'M3.1 9.8h5']
+    const GLYPH_WEN = ['M14.4 6.6 15.2 8.8', 'M10.3 10.9h9.5', 'M10.7 12.9 16.3 19.6', 'M18.5 12.9 12.6 19.6']
 
     function SidebarIcon(props) {
       const size = (props && props.size) || 20
@@ -214,10 +213,10 @@ window.__ModuleLoader__.load({
         {
           width: size,
           height: size,
-          viewBox: '0 0 24 24',
+          viewBox: '0 0 20 20',
           fill: 'none',
           stroke: 'currentColor',
-          strokeWidth: 1.75,
+          strokeWidth: 1,
           strokeLinecap: 'round',
           strokeLinejoin: 'round',
           'aria-hidden': true,
@@ -226,7 +225,7 @@ window.__ModuleLoader__.load({
         GLYPH_A.map((d, i) => h('path', { key: `a${i}`, d })),
         h(
           'g',
-          { transform: 'rotate(-8 15.9 13)' },
+          { transform: 'rotate(-8 15 12.8)' },
           GLYPH_WEN.map((d, i) => h('path', { key: `w${i}`, d })),
         ),
       )
