@@ -201,24 +201,20 @@ window.__ModuleLoader__.load({
       docHost: { display: 'block', marginTop: 4 },
     }
 
-    // Hand-drawn in the Lucide idiom (24 grid, round caps, 2px stroke):
-    // A on the left, a curved arrow to 文 on the right. The arrow is dropped
-    // below 28px because three elements inside a 20px box turn into a smudge —
-    // the usual optical-size trade-off rather than a stylistic choice.
+    // Lucide `languages` idiom (24 grid, round caps), with the two clusters
+    // swapped: A sits top-left, 文 bottom-right, so the reading direction is
+    // English → Chinese. Still one diagonal composition, no extra ornament.
     const GLYPH_PATHS = [
-      'M2.6 19.4 5.7 10.6l3.1 8.8',
-      'M4 15.8h3.4',
-      'M17.6 8.6v1.7',
-      'M14 11.5h7.2',
-      'M14.6 14.2 20.4 19.8',
-      'M20 14.2 14.2 19.8',
+      'M11 11 6 1 1 11',
+      'M3 7h6',
+      'M14 16 20 22',
+      'M13 22 19 16 21 13',
+      'M11 13h12',
+      'M16 10h1',
     ]
-    const ARC_PATH = 'M8.6 7.6c1.5-2.5 3.8-2.8 5.1-1.4'
-    const ARC_HEAD = 'M13.1 4.7 15.4 6.2 12.9 7.5z'
 
     function SidebarIcon(props) {
       const size = (props && props.size) || 20
-      const withArc = size >= 28
       return h(
         'svg',
         {
@@ -233,9 +229,11 @@ window.__ModuleLoader__.load({
           'aria-hidden': true,
           style: { display: 'block' },
         },
-        GLYPH_PATHS.map((d, i) => h('path', { key: i, d })),
-        withArc ? h('path', { key: 'arc', d: ARC_PATH }) : null,
-        withArc ? h('path', { key: 'head', d: ARC_HEAD, fill: 'currentColor', stroke: 'none' }) : null,
+        h(
+          'g',
+          { transform: 'translate(2.2 2.2) scale(0.82)' },
+          GLYPH_PATHS.map((d, i) => h('path', { key: i, d })),
+        ),
       )
     }
 
