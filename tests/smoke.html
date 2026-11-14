@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>smoke</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  body { font-family: "Songti SC", "SimSun", "Noto Serif CJK SC", serif; font-size: 10.5pt; line-height: 1.7; }
+  h1 { font-size: 16pt; margin: 0 0 6mm; }
+  .card { break-inside: avoid; border: 0.4pt solid #ccc; padding: 4mm; margin-bottom: 5mm; }
+  table { border-collapse: collapse; table-layout: fixed; width: 100%; }
+  td, th { border: 0.4pt solid #bbb; padding: 2mm; vertical-align: top; }
+  .en { color: #333; }
+  .note { color: #666; font-size: 9pt; }
+</style>
+</head>
+<body>
+  <h1>跨平台渲染自检 · Cross-platform render smoke test</h1>
+
+  <div class="card">
+    <p class="en">The quick brown fox jumps over the lazy dog, and this paragraph exists only to prove that Latin text and CJK text can share one line box without breaking the layout.</p>
+    <p>这段中文用于验证字体回退与断行：如果渲染正常，这一行应该完整显示，不出现方块、乱码或缺字。</p>
+    <p class="note">A4 · 210 × 297 mm · 本页由 scripts/render_pdf.py 生成，不包含任何页眉页脚。</p>
+  </div>
+
+  <table>
+    <tr><th>平台 Platform</th><th>预期浏览器 Browser</th><th>验证方式 Check</th></tr>
+    <tr><td>macOS</td><td>/Applications/Google Chrome.app</td><td>render_pdf.py --check</td></tr>
+    <tr><td>Linux</td><td>/usr/bin/google-chrome</td><td>render_pdf.py --check</td></tr>
+    <tr><td>Windows</td><td>C:\Program Files\Google\Chrome\Application\chrome.exe</td><td>render_pdf.py --check</td></tr>
+  </table>
+</body>
+</html>

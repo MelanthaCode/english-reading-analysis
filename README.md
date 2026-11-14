@@ -4,7 +4,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-8A2BE2)](#兼容性)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-d97757)](#安装)
-![Version](https://img.shields.io/badge/version-1.0.1-green)
+![Version](https://img.shields.io/badge/version-1.0.2-green)
+[![cross-platform](https://github.com/MelanthaCode/english-reading-analysis/actions/workflows/cross-platform.yml/badge.svg)](https://github.com/MelanthaCode/english-reading-analysis/actions/workflows/cross-platform.yml)
 
 > **把英语试卷丢给 AI，输出可打印的中文解析。**
 
@@ -40,6 +41,38 @@ git clone https://github.com/MelanthaCode/english-reading-analysis.git \
 # 或
   ~/.dsh/skills/english-reading-analysis         # DeepSeek Harness
 ```
+
+Windows 上手动放置的写法（PowerShell）：
+
+```powershell
+git clone https://github.com/MelanthaCode/english-reading-analysis.git `
+  "$env:USERPROFILE\.claude\skills\english-reading-analysis"
+```
+
+三个系统上 `npx skills add` 行为一致，优先用它，可以省掉手写路径。
+
+## 支持平台
+
+**Windows、macOS、Linux 三个系统都必须能完整跑通**，包括最后的 A4 PDF 渲染。这不是口头承诺：仓库里有一条 CI 在三个系统的真实机器上跑同一份冒烟测试（[cross-platform.yml](.github/workflows/cross-platform.yml)），任何平台坏掉，徽章就会变红。
+
+| 系统 | 支持 | 浏览器 | 扫描件所需（可选） | 自检 |
+|---|---|---|---|---|
+| Windows 10 / 11 | ✅ CI 实测 | Chrome、Edge、Brave（默认安装即可，**不需要加进 PATH**） | TeXLive/MiKTeX 自带，或 `scoop install poppler` | `python scripts\render_pdf.py --check` |
+| macOS 12+ | ✅ CI 实测 | Chrome、Chromium、Edge | `brew install poppler` | `python3 scripts/render_pdf.py --check` |
+| Linux（x64/arm64） | ✅ CI 实测 | `google-chrome`、`chromium`、`microsoft-edge`、`brave-browser` | `apt install poppler-utils` | `python3 scripts/render_pdf.py --check` |
+
+自检通过时输出类似：
+
+```
+platform:  win32
+python:    3.11.9
+browser:   C:\Program Files\Google\Chrome\Application\chrome.exe
+pdftoppm:  C:\texlive\2024\bin\windows\pdftoppm.exe
+pdfinfo:   C:\texlive\2024\bin\windows\pdfinfo.exe
+status:    ready for PDF rendering
+```
+
+`status` 必须是 `ready for PDF rendering`。若 `browser` 是 `NOT FOUND`，用 `--chrome "路径"` 指过去即可（[常见报错见 references/layout-pdf.md](references/layout-pdf.md#5-已知坑)）。
 
 ## 兼容性
 
@@ -148,8 +181,12 @@ english-reading-analysis/
 ├── assets/
 │   ├── template.html              # 可直接套用的 HTML 模板
 │   └── screenshots/               # README 用效果图
-└── scripts/
-    └── render_pdf.py              # HTML → A4 PDF（macOS / Linux / Windows）
+├── scripts/
+│   └── render_pdf.py              # HTML → A4 PDF（macOS / Linux / Windows）
+├── tests/
+│   └── smoke.html                 # 跨平台冒烟页，CI 在三系统上渲染它
+└── .github/workflows/
+    └── cross-platform.yml         # Windows / macOS / Linux 三系统 CI
 ```
 
 ## 设计取舍

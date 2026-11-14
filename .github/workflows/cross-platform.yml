@@ -1,0 +1,68 @@
+name: cross-platform
+
+# Proves that PDF rendering works on Windows, macOS and Linux, not just on the
+# author's machine. This is the regression test for the v1.0.0 bug where browser
+# detection only knew macOS and Linux paths, so every Windows install failed at
+# the PDF step with "no Chrome/Chromium/Edge found".
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    name: render (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Report environment
+        shell: bash
+        run: |
+          python --version
+          echo "runner: $RUNNER_OS"
+
+      - name: Detect browser (must exit 0)
+        shell: bash
+        run: python scripts/render_pdf.py --check
+
+      - name: Render the smoke page to A4 PDF
+        shell: bash
+        run: python scripts/render_pdf.py tests/smoke.html out.pdf
+
+      - name: Assert a real PDF was produced
+        shell: bash
+        run: |
+          python - <<'PY'
+          import pathlib, sys
+          pdf = pathlib.Path("out.pdf")
+          if not pdf.is_file():
+              sys.exit("no out.pdf produced")
+          data = pdf.read_bytes()
+          if not data.startswith(b"%PDF"):
+              sys.exit(f"out.pdf is not a PDF: first bytes {data[:8]!r}")
+          if len(data) < 2000:
+              sys.exit(f"out.pdf suspiciously small: {len(data)} bytes")
+          print(f"ok: {len(data)} bytes, header {data[:8]!r}")
+          PY
+
+      - name: Upload rendered PDF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-pdf-${{ matrix.os }}
+          path: out.pdf
+          if-no-files-found: warn

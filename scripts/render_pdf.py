@@ -57,6 +57,8 @@ LINUX_PATHS = (
     "/opt/google/chrome/chrome",
     "/usr/bin/microsoft-edge",
     "/usr/bin/microsoft-edge-stable",
+    "/usr/bin/brave-browser",
+    "/opt/brave.com/brave/brave",
 )
 
 # Windows: install roots from the environment, then well-known relative paths.
@@ -236,10 +238,21 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.check:
         chrome = find_chrome(args.chrome)
-        print(f"platform: {sys.platform}")
-        print(f"browser:  {chrome or 'NOT FOUND'}")
+        pdftoppm = shutil.which("pdftoppm")
+        pdfinfo = shutil.which("pdfinfo")
+        print(f"platform:  {sys.platform}")
+        print(f"python:    {sys.version.split()[0]}")
+        print(f"browser:   {chrome or 'NOT FOUND'}")
+        print(f"pdftoppm:  {pdftoppm or 'MISSING (only needed to read scanned PDFs)'}")
+        print(f"pdfinfo:   {pdfinfo or 'MISSING (page count in the summary only)'}")
         if chrome is None:
+            print(
+                "status:    PDF rendering will FAIL until a browser is found "
+                "(pass --chrome <path> if it is installed elsewhere)",
+                file=sys.stderr,
+            )
             return 3
+        print("status:    ready for PDF rendering")
         return 0
 
     if not args.html or not args.pdf:

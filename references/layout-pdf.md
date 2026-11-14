@@ -112,6 +112,17 @@ New-Item -ItemType Directory -Force "$env:TEMP\chrome-headless" | Out-Null
 
 Windows 的 `file://` URI 必须是 `file:///C:/...` 形式（三个斜杠 + 正斜杠），中文与空格会被百分号编码；直接传 `C:\...` 给 Chrome 会打不开。
 
+等价手动命令（Linux）：
+
+```bash
+mkdir -p /tmp/chrome-headless
+google-chrome \
+  --headless=new --disable-gpu --no-sandbox \
+  --user-data-dir=/tmp/chrome-headless \
+  --no-pdf-header-footer --virtual-time-budget=8000 \
+  --print-to-pdf=输出.pdf "file:///绝对路径/输入.html"
+```
+
 ## 5. 已知坑
 
 | 现象 | 原因 | 处理 |

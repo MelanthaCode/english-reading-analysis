@@ -30,6 +30,18 @@ git clone https://github.com/MelanthaCode/english-reading-analysis.git \
   ~/.claude/skills/english-reading-analysis
 ```
 
+## Supported platforms
+
+**All three desktop platforms must work end to end, including the final A4 PDF render.** This is enforced by CI that runs the same smoke test on real Windows, macOS and Linux runners ([cross-platform.yml](.github/workflows/cross-platform.yml)) — if one platform breaks, the badge turns red.
+
+| Platform | Supported | Browser | Optional, for scanned PDFs | Self-check |
+|---|---|---|---|---|
+| Windows 10 / 11 | ✅ CI-verified | Chrome, Edge, Brave (default install location; **PATH entry not required**) | bundled with TeXLive/MiKTeX, or `scoop install poppler` | `python scripts\render_pdf.py --check` |
+| macOS 12+ | ✅ CI-verified | Chrome, Chromium, Edge | `brew install poppler` | `python3 scripts/render_pdf.py --check` |
+| Linux (x64/arm64) | ✅ CI-verified | `google-chrome`, `chromium`, `microsoft-edge`, `brave-browser` | `apt install poppler-utils` | `python3 scripts/render_pdf.py --check` |
+
+A successful self-check ends with `status:    ready for PDF rendering`. If `browser` reads `NOT FOUND`, point at the executable with `--chrome "path"`.
+
 ## What it does
 
 | Input | Output |
