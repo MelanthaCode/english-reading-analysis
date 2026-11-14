@@ -229,6 +229,10 @@ npx skills add MelanthaCode/english-reading-analysis
 
 [Full English README →](README.en.md)
 
+## 字体
+
+英文标题用 [Jost](https://fonts.google.com/specimen/Jost)、正文用 [Zilla Slab](https://fonts.google.com/specimen/Zilla+Slab)（均为 SIL Open Font License 1.1），以 base64 内嵌在 `assets/template.html` 里，所以离线渲染 PDF 也能保持同样字形；中文回落到系统宋体 / PingFang。
+
 ## License
 
 MIT

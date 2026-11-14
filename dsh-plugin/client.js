@@ -122,9 +122,9 @@ window.__ModuleLoader__.load({
       primary: {
         padding: '8px 18px',
         borderRadius: 8,
-        border: '1px solid var(--dsw-alias-brand-primary)',
-        background: 'var(--dsw-alias-brand-primary)',
-        color: 'var(--dsw-alias-bg-base)',
+        border: '1px solid #f9564e',
+        background: '#f9564e',
+        color: '#fffdf8',
         fontSize: 13,
         fontWeight: 600,
         cursor: 'pointer',
@@ -173,10 +173,16 @@ window.__ModuleLoader__.load({
         top: 0,
         bottom: 0,
         borderRadius: 999,
-        background: 'var(--dsw-alias-brand-primary)',
+        background: '#f9564e',
         transition: 'width 320ms ease',
       },
-      doc: { padding: '4px 0 0' },
+      doc: {
+        marginTop: 4,
+        padding: '26px 30px 30px',
+        borderRadius: 12,
+        background: '#f4efe5',
+        boxShadow: '0 1px 2px rgba(119,67,24,.06), 0 8px 24px rgba(119,67,24,.08)',
+      },
     }
 
     function SidebarIcon(props) {

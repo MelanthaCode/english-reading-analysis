@@ -265,7 +265,7 @@ export function apply(ctx) {
     const title = String(payload?.title || '英语阅读分析')
     const html = `<!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="utf-8"><title>${title}</title>
-<style>${templateCss}</style></head>
+<style>${readTemplateCss()}</style></head>
 <body>${fragment}</body></html>`
 
     let work
@@ -323,12 +323,11 @@ export function apply(ctx) {
     })
   }
 
-  const templateCss = readTemplateCss()
-  // Served raw: the panel scopes it to its own container client-side, so this
-  // route stays a plain stylesheet and the panel needs no host reload.
+  // Read per request, not at apply time: editing the stylesheet then only needs a
+  // page refresh instead of a host restart.
   const style = (_req, res) => {
     res.writeHead(200, { 'content-type': 'text/css; charset=utf-8', 'cache-control': 'no-store' })
-    res.end(templateCss)
+    res.end(readTemplateCss())
   }
 
   const ROUTES = [
