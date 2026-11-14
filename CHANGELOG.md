@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-14 — first npm release
+
+`dsh-skill-english-reading@1.6.2` is live on npm (author: Melantha, MIT).
+`dsh plugin add dsh-skill-english-reading` installs the bundle; the catalog entry
+is open at awesome-dsh-plugin/awesome-dsh-plugin#15327.
+
 ## 1.0.3 — 2026-11-14
 
 **Graceful degradation beyond the three supported systems.** Windows, macOS and Linux stay the contract, but unsupported or locked-down environments (WSL, Alpine, FreeBSD, Termux, Safari-only macOS, corporate machines) no longer dead-end.

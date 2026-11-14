@@ -4,7 +4,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-8A2BE2)](#兼容性)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-d97757)](#安装)
-![Version](https://img.shields.io/badge/version-1.0.3-green)
+[![npm](https://img.shields.io/npm/v/dsh-skill-english-reading?logo=npm&label=npm)](https://www.npmjs.com/package/dsh-skill-english-reading)
+[![npm downloads](https://img.shields.io/npm/dm/dsh-skill-english-reading)](https://www.npmjs.com/package/dsh-skill-english-reading)
 [![cross-platform](https://github.com/MelanthaCode/english-reading-analysis/actions/workflows/cross-platform.yml/badge.svg)](https://github.com/MelanthaCode/english-reading-analysis/actions/workflows/cross-platform.yml)
 
 > **把英语试卷丢给 AI，输出可打印的中文解析。**
@@ -22,7 +23,7 @@
 
 | 你的工具 | 安装方式 |
 |---|---|
-| **DeepSeek Harness** | 插件市场搜索「英语阅读分析」，或 `dsh plugin add dsh-skill-english-reading` |
+| **DeepSeek Harness** | 插件市场搜索「英语阅读分析」，或 `dsh plugin add dsh-skill-english-reading`（[npm](https://www.npmjs.com/package/dsh-skill-english-reading)）|
 | **Claude Code** | `claude plugin marketplace add MelanthaCode/english-reading-analysis` → `claude plugin install english-reading-analysis@melantha-skills` |
 | **Codex / Cursor / Copilot / Cline / OpenCode / Amp / Windsurf / Gemini CLI 等 20+** | `npx skills add MelanthaCode/english-reading-analysis` |
 
