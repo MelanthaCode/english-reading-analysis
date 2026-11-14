@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="English to Chinese reading analysis">
   <rect width="128" height="128" rx="28" fill="#f4efe5"/>
-  <rect x="1.5" y="1.5" width="125" height="125" rx="26.5" fill="none" stroke="#e4d8c4" stroke-width="3"/>
 
-  <text x="16" y="80" font-family="Georgia, 'Times New Roman', serif" font-size="44" font-weight="600" fill="#2f2620">A</text>
+  <!-- 左上：拉丁 -->
+  <rect x="16" y="14" width="52" height="52" rx="14" fill="#3a4178"/>
+  <text x="42" y="49" font-family="Georgia, 'Times New Roman', serif" font-size="34" font-weight="700"
+        fill="#f4efe5" text-anchor="middle">A</text>
 
-  <path d="M52 66h18" stroke="#f9564e" stroke-width="6" stroke-linecap="round"/>
-  <path d="M64 56l10 10-10 10" fill="none" stroke="#f9564e" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-
-  <text x="78" y="80" font-family="'Songti SC', 'SimSun', 'Noto Serif CJK SC', serif" font-size="40" font-weight="600" fill="#3a4178">文</text>
-
-  <path d="M20 98h88" stroke="#ffcc2d" stroke-width="4" stroke-linecap="round"/>
+  <!-- 右下：中文（用底色描边与左上卡分离） -->
+  <rect x="60" y="58" width="52" height="52" rx="14" fill="#f9564e" stroke="#f4efe5" stroke-width="6"/>
+  <text x="86" y="93" font-family="'Songti SC', 'SimSun', 'Noto Serif CJK SC', serif" font-size="30" font-weight="600"
+        fill="#fffdf8" text-anchor="middle">中</text>
 </svg>

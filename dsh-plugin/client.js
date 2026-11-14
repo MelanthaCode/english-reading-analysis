@@ -203,7 +203,6 @@ window.__ModuleLoader__.load({
 
     function SidebarIcon(props) {
       const size = (props && props.size) || 20
-      const ink = props && props.active ? C.coral : 'currentColor'
       return h(
         'svg',
         {
@@ -214,36 +213,34 @@ window.__ModuleLoader__.load({
           'aria-hidden': true,
           style: { display: 'block' },
         },
+        // Diagonal pair: Latin tile top-left, Chinese tile bottom-right.
+        h('rect', { x: 1.5, y: 1, width: 16, height: 16, rx: 4.6, fill: '#3a4178' }),
         h(
           'text',
           {
-            x: 1.5,
-            y: 21.5,
-            fontSize: 13,
-            fontWeight: 600,
+            x: 9.6,
+            y: 13.2,
+            fontSize: 10.5,
+            fontWeight: 700,
             fontFamily: 'Georgia, "Times New Roman", serif',
-            fill: ink,
+            fill: '#f4efe5',
+            textAnchor: 'middle',
           },
           'A',
         ),
-        h('path', {
-          d: 'M13.2 15.5h4.6M15.6 12.4 18.7 15.5l-3.1 3.1',
-          stroke: C.coral,
-          strokeWidth: 1.9,
-          strokeLinecap: 'round',
-          strokeLinejoin: 'round',
-        }),
+        h('rect', { x: 14.5, y: 14.5, width: 16, height: 16, rx: 4.6, fill: '#f9564e' }),
         h(
           'text',
           {
-            x: 19.4,
-            y: 21.5,
-            fontSize: 11.5,
+            x: 22.6,
+            y: 26.4,
+            fontSize: 9.6,
             fontWeight: 600,
             fontFamily: '"Songti SC", "SimSun", "Noto Serif CJK SC", serif',
-            fill: ink,
+            fill: '#fffdf8',
+            textAnchor: 'middle',
           },
-          '文',
+          '中',
         ),
       )
     }
