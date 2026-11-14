@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>英语阅读分析：{{TITLE}}</title>
+<style>
+  @page { size: A4; margin: 13mm 13mm 12mm 13mm; }
+  :root{--ink:#1c1c1e; --muted:#6b7078; --line:#d9dde3;
+        --s:#2f6fdb; --v:#0f9d58; --o:#e8710a; --d:#8e44ad; --a:#d93025; --l:#00838f;}
+  *{box-sizing:border-box} html,body{margin:0;padding:0}
+  body{font-family:"Songti SC","PingFang SC","Noto Serif CJK SC",serif;
+       color:var(--ink); font-size:10.4pt; line-height:1.56;}
+  h1{font-family:"PingFang SC",sans-serif; font-size:16pt; margin:0 0 2mm;}
+  .sub{font-family:"PingFang SC",sans-serif; color:var(--muted); font-size:9pt; margin-bottom:4mm;}
+  .rule{height:2px;background:var(--ink);margin:0 0 4mm}
+  .legend{font-family:"PingFang SC",sans-serif; font-size:8.6pt; color:#3d4249;
+          background:#f6f7f9; border:1px solid var(--line); border-radius:3px;
+          padding:2.4mm 3mm; margin-bottom:5mm}
+  mark{background:#ffe9a8; box-shadow:inset 0 -1px 0 #e8c65a;}
+  sup.no{font-family:"PingFang SC",sans-serif; font-size:7.4pt; background:#ffe9a8;
+         border:1px solid #e8c65a; border-radius:50%; padding:0 1px; margin-left:1px;}
+
+  h2{font-family:"PingFang SC",sans-serif; font-size:12.4pt; margin:6mm 0 2mm;
+     padding-left:2.6mm; border-left:4px solid var(--ink);}
+  h2 .en{font-family:Georgia,serif; font-weight:600; color:var(--muted); font-size:10pt; margin-left:2mm;}
+  h2.part{break-before:page; margin-top:0}
+  h3.blk{font-family:"PingFang SC",sans-serif; font-size:11.2pt; margin:5.5mm 0 2.2mm;
+         padding-bottom:1.2mm; border-bottom:1.5px solid #c9ced6;
+         break-after:avoid; page-break-after:avoid;}
+  h3.blk .n{font-size:8.6pt; color:var(--muted); font-weight:400; margin-left:2mm}
+
+  .para{margin:0 0 3mm; break-inside:avoid}
+  .en{font-family:Georgia,"Times New Roman",serif; font-size:10.2pt; line-height:1.64;
+      margin:0 0 1.2mm; text-align:justify}
+  .zh{margin:0; color:#2a2f36; text-align:justify}
+
+  .q{border:1px solid var(--line); border-radius:4px; padding:2.4mm 3mm 2mm;
+     margin:0 0 3mm; break-inside:avoid}
+  .q-h{display:flex; gap:2.2mm; align-items:baseline; margin-bottom:1mm}
+  .qn{font-family:"PingFang SC",sans-serif; font-weight:700; font-size:9.4pt; color:#fff;
+      background:#3b4048; border-radius:2px; padding:0 4px;}
+  .q-en{font-family:Georgia,serif; font-size:9.9pt;}
+  .q-zh{font-size:9.6pt; color:#3a4048; margin:0 0 1.6mm}
+  .opts{display:grid; grid-template-columns:1fr 1fr; column-gap:4mm; row-gap:.6mm; margin:0 0 1.8mm}
+  .opts.wide{grid-template-columns:1fr}
+  .opt{font-family:Georgia,serif; font-size:9.3pt}
+  .opt b{font-family:"PingFang SC",sans-serif; margin-right:.8mm}
+  .opt i{font-style:normal; color:#5d636b; font-size:9pt}
+  .ans{background:#eef6ee; border:1px solid #cfe3cf; border-radius:3px; padding:1.5mm 2.2mm; font-size:9.3pt}
+  .ans .key{font-family:"PingFang SC",sans-serif; font-weight:700; color:#1d6b2f; margin-right:2mm}
+
+  table.dat{width:100%; border-collapse:collapse; font-size:9.2pt; margin:2mm 0 0}
+  table.dat th,table.dat td{border:1px solid var(--line); padding:1.1mm 2mm; text-align:center}
+  table.dat th{background:#f4f6f8; font-family:"PingFang SC",sans-serif; font-size:8.8pt}
+  .ok{color:#1d6b2f; font-weight:700} .no{color:#b3261e; font-weight:700}
+
+  .card{border:1px solid var(--line); border-radius:4px; padding:2.2mm 3mm 1.8mm;
+        margin:0 0 2.6mm; break-inside:avoid}
+  .card-h{display:flex; align-items:baseline; gap:2.4mm; margin-bottom:2mm}
+  .num{font-family:"PingFang SC",sans-serif; font-weight:700; font-size:11pt; color:#fff;
+       background:var(--ink); border-radius:50%; width:6.2mm; height:6.2mm; line-height:6.2mm; text-align:center;}
+  .where{font-family:"PingFang SC",sans-serif; font-size:8.4pt; color:var(--muted)}
+  .src{font-family:Georgia,serif; font-size:9.4pt; background:#fafbfc; border-left:2px solid #c9ced6;
+       padding:1.1mm 2.2mm; margin-bottom:1.5mm; line-height:1.45}
+  table.fr{width:100%; border-collapse:collapse; table-layout:fixed; margin:0 0 2.2mm}
+  table.fr th{width:29mm; text-align:right; font-family:"PingFang SC",sans-serif;
+              font-size:8.1pt; line-height:1.24; border-right:2px solid #c9ced6; padding:1.1mm 2mm 1.1mm 0}
+  table.fr td{padding:0.75mm 2mm 0.75mm 2.6mm; font-family:Georgia,serif; font-size:9pt}
+  .seg{display:inline-flex; flex-direction:column; align-items:center; margin:0 3.4px 5px 0; vertical-align:bottom}
+  .seg .t{padding:0 1px 1px; border-bottom:2px solid #999; white-space:nowrap; font-size:9pt}
+  .seg .l{font-family:"PingFang SC",sans-serif; font-size:6.8pt; color:#6b7078; margin-top:1.5px; white-space:nowrap}
+  .c-s .t{border-bottom-color:var(--s)} .c-v .t{border-bottom-color:var(--v)}
+  .c-o .t{border-bottom-color:var(--o)} .c-d .t{border-bottom-color:var(--d)}
+  .c-a .t{border-bottom-color:var(--a)} .c-l .t{border-bottom-color:var(--l)}
+  .zhs{margin:0 0 1.1mm} .zhs::before{content:"句意"; font-family:"PingFang SC",sans-serif; font-size:7.4pt;
+       color:#fff; background:#8b9099; border-radius:2px; padding:0 3px; margin-right:2.2mm}
+  .note{margin:0 0 1mm; font-size:9.6pt; line-height:1.55}
+  .note b{font-family:"PingFang SC",sans-serif; font-size:8.6pt; color:#fff; background:#c98a00;
+          border-radius:2px; padding:0 3px; margin-right:2mm}
+  .kp{background:#fff8e6; border:1px solid #f0dca6; border-radius:3px; padding:1.2mm 2.2mm; font-size:9.2pt}
+  footer{margin-top:5mm; border-top:1px solid var(--line); padding-top:1.6mm;
+         font-family:"PingFang SC",sans-serif; font-size:7.8pt; color:#9aa0a8; display:flex; justify-content:space-between}
+</style>
+</head>
+<body>
+
+<h1>英语阅读分析：{{TITLE}}</h1>
+<div class="sub">全文翻译 · 长难句拆解 · 题目解析　｜　原文照录，未作改写</div>
+<div class="rule"></div>
+<div class="legend"><b>阅读方式</b>　黄色高亮＝复杂长难句，编号对应本篇拆解卡片；每段先原文后译文。</div>
+
+<!-- ===== 一篇 = 一个 section ===== -->
+<h2>文章 1<span class="en">{{TOPIC}}</span></h2>
+
+<div class="para">
+  <p class="en">{{EN_PARAGRAPH_1}}</p>
+  <p class="zh">{{ZH_PARAGRAPH_1}}</p>
+</div>
+
+<h3 class="blk">题目 · 选项 · 答案<span class="n">1–3</span></h3>
+
+<div class="q">
+  <div class="q-h"><span class="qn">1</span><span class="q-en">{{QUESTION_EN}}</span></div>
+  <div class="q-zh">{{QUESTION_ZH}}</div>
+  <div class="opts">
+    <div class="opt"><b>A</b>{{A}}　<i>{{A_ZH}}</i></div>
+    <div class="opt"><b>B</b>{{B}}　<i>{{B_ZH}}</i></div>
+    <div class="opt"><b>C</b>{{C}}　<i>{{C_ZH}}</i></div>
+    <div class="opt"><b>D</b>{{D}}　<i>{{D_ZH}}</i></div>
+  </div>
+  <div class="ans"><span class="key">答案 A. {{A}}</span>{{WHY}}</div>
+</div>
+
+<h3 class="blk">作答对错分析<span class="n">1–3</span></h3>
+<table class="dat">
+  <tr><th>题号</th><th>作答</th><th>参考答案</th><th>判定</th><th>错因</th></tr>
+  <tr><td>1</td><td>A</td><td>A</td><td class="ok">✓</td><td>—</td></tr>
+  <tr><td>2</td><td>B</td><td>D</td><td class="no">✗</td><td>词义误判</td></tr>
+</table>
+
+<h3 class="blk">长难句拆解<span class="n">①–②</span></h3>
+
+<div class="card">
+  <div class="card-h"><div class="num">1</div><div class="where">第 1 段 ｜ {{WORDS}} 词 ｜ {{STRUCTURE}}</div></div>
+  <div class="src">{{SENTENCE}}</div>
+  <table class="fr">
+    <tr><th>主句</th><td>
+      <span class="seg c-s"><span class="t">{{SUBJECT}}</span><span class="l">主语</span></span>
+      <span class="seg c-v"><span class="t">{{VERB}}</span><span class="l">谓语</span></span>
+      <span class="seg c-o"><span class="t">{{OBJECT}}</span><span class="l">宾语</span></span>
+    </td></tr>
+    <tr><th>定语从句</th><td>
+      <span class="seg c-d"><span class="t">{{REL}}</span><span class="l">先行词＋关系词</span></span>
+    </td></tr>
+  </table>
+  <p class="zhs">{{SENTENCE_ZH}}</p>
+  <p class="note"><b>要点</b>{{KEY_POINT}}</p>
+  <div class="kp"><b>高频考点</b>{{EXAM_POINTS}}</div>
+</div>
+
+<footer><span>依据原文逐句翻译，未增删内容。</span><span>英语阅读分析</span></footer>
+
+</body>
+</html>
