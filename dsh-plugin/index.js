@@ -11,7 +11,7 @@
 // an ordinary Node HTTP carrier that the panel can fetch from the same origin.
 
 import { spawn } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -25,9 +25,11 @@ const PYTHON = process.platform === 'win32' ? 'python' : 'python3'
 // `optional` is what makes ctx.get('webServer') resolve: Cordis only exposes a
 // service to a context that declared it, and an undeclared get() returns
 // undefined no matter how healthy the service is.
+// webServer is REQUIRED, not optional: a required dependency makes Cordis wait
+// for the service before calling apply(), whatever order the bundles mount in.
 export const inject = {
-  required: ['skills'],
-  optional: ['webServer', 'llm', 'agentDefaultModel'],
+  required: ['skills', 'webServer'],
+  optional: ['llm', 'agentDefaultModel'],
 }
 
 function parseFrontmatter(raw) {
@@ -126,8 +128,26 @@ export function apply(ctx) {
     }
   }
 
-  const webServer = getService('webServer')
+  // Record what this context can actually see, so a failed registration is
+  // diagnosable from the filesystem instead of only from a log stream.
+  const bootReport = {
+    at: new Date().toISOString(),
+    plugin: 'dsh-skill-english-reading',
+    hasGet: typeof ctx.get === 'function',
+    directWebServer: Boolean(ctx.webServer),
+    getWebServer: Boolean(getService('webServer')),
+    hasLlm: Boolean(getService('llm')),
+    hasModel: Boolean(getService('agentDefaultModel')),
+    skillDir,
+  }
+
+  const webServer = ctx.webServer || getService('webServer')
   if (!webServer) {
+    bootReport.registered = false
+    bootReport.reason = 'webServer unavailable on the plugin context'
+    try {
+      writeFileSync('/tmp/english-reading-boot.json', JSON.stringify(bootReport, null, 2))
+    } catch {}
     console.warn('[english-reading] webServer unavailable: panel routes are not served')
     return
   }
@@ -287,4 +307,11 @@ export function apply(ctx) {
       },
     }),
   )
+
+  // Reaching this line means all three registrations ran; any throw skips it.
+  bootReport.registered = 3
+  bootReport.routes = [`${ROUTE_PREFIX}/health`, `${ROUTE_PREFIX}/analyze`, `${ROUTE_PREFIX}/pdf`]
+  try {
+    writeFileSync('/tmp/english-reading-boot.json', JSON.stringify(bootReport, null, 2))
+  } catch {}
 }
