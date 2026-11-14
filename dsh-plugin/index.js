@@ -324,7 +324,8 @@ export function apply(ctx) {
   }
 
   const templateCss = readTemplateCss()
-
+  // Served raw: the panel scopes it to its own container client-side, so this
+  // route stays a plain stylesheet and the panel needs no host reload.
   const style = (_req, res) => {
     res.writeHead(200, { 'content-type': 'text/css; charset=utf-8', 'cache-control': 'no-store' })
     res.end(templateCss)

@@ -1,8 +1,9 @@
 // Client half of dsh-skill-english-reading.
 //
 // Sidebar entry + main panel. The panel posts to the Host's same-origin routes
-// and renders the reply with the skill's own stylesheet, so what you see here is
-// what the PDF prints. The PDF route is only called when the user asks for it.
+// and renders the reply with the skill's own stylesheet (scoped to `.er-doc`),
+// directly in the page — there is no iframe, so the whole column scrolls.
+// The PDF route is only called when the user asks for it.
 
 window.__ModuleLoader__.load({
   id: 'dsh-skill-english-reading',
@@ -23,7 +24,6 @@ window.__ModuleLoader__.load({
       start: '开始分析',
       running: '正在分析',
       elapsed: '已用时',
-      produced: '已生成',
       note: 'PDF、扫描件、照片请在对话里作为附件发送；这里适合粘贴文字。',
       empty: '先粘贴英文，或拖入一个文本文件。',
       fileLoaded: '文件已读入',
@@ -47,7 +47,6 @@ window.__ModuleLoader__.load({
       start: 'Analyse',
       running: 'Analysing',
       elapsed: 'elapsed',
-      produced: 'produced',
       note: 'Attach PDFs, scans or photos in the conversation; this panel is for pasted text.',
       empty: 'Paste the English first, or drop a text file.',
       fileLoaded: 'File loaded',
@@ -56,33 +55,25 @@ window.__ModuleLoader__.load({
       failed: 'Failed',
       download: 'Download PDF',
       preparing: 'Rendering PDF…',
-      again: 'Analyse another',
+      again: 'Analyse next',
       ready: 'Done',
       paged: 'Downloaded',
       stop: 'Stopped',
     }
 
-    // The bar is a travelling segment, not a full-width block: a 100%-wide bar
-    // sliding by its own width looks completely static.
-    const KEYFRAMES = `
-      @keyframes er-slide {
-        0%   { transform: translateX(-120%); }
-        100% { transform: translateX(340%); }
-      }
-    `
-
     const styles = {
       page: {
         height: '100%',
         overflowY: 'auto',
-        padding: '26px 32px 40px',
+        padding: '26px 32px 56px',
         color: 'var(--dsw-alias-label-primary)',
         background: 'var(--dsw-alias-bg-base)',
         boxSizing: 'border-box',
       },
-      inner: { maxWidth: 900, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14 },
+      inner: { maxWidth: 940, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14 },
       title: { fontSize: 20, fontWeight: 600, margin: 0 },
       subtitle: { margin: 0, color: 'var(--dsw-alias-label-secondary)', fontSize: 13, lineHeight: 1.65 },
+
       zone: {
         display: 'flex',
         flexDirection: 'column',
@@ -126,6 +117,7 @@ window.__ModuleLoader__.load({
         padding: 0,
       },
       note: { margin: 0, fontSize: 12, lineHeight: 1.65, color: 'var(--dsw-alias-label-secondary)' },
+
       actions: { display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' },
       primary: {
         padding: '8px 18px',
@@ -151,61 +143,40 @@ window.__ModuleLoader__.load({
       status: { fontSize: 12, color: 'var(--dsw-alias-label-secondary)' },
       statusError: { fontSize: 12, color: 'var(--dsw-alias-state-error-primary)' },
 
-      progressCard: {
-        border: '1px solid var(--dsw-alias-border-l1)',
-        background: 'var(--dsw-alias-bg-layer-1)',
-        borderRadius: 12,
-        padding: '18px 20px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 10,
+      stickyBar: {
+        position: 'sticky',
+        top: -26,
+        zIndex: 3,
+        margin: '-26px -32px 0',
+        padding: '26px 32px 12px',
+        background: 'var(--dsw-alias-bg-base)',
       },
-      progressHead: {
+      barHead: {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'baseline',
-        fontSize: 13,
-        color: 'var(--dsw-alias-label-primary)',
-        gap: 12,
+        fontSize: 12,
+        color: 'var(--dsw-alias-label-secondary)',
+        marginBottom: 6,
+        fontVariantNumeric: 'tabular-nums',
       },
-      progressMeta: { fontSize: 12, color: 'var(--dsw-alias-label-secondary)', fontVariantNumeric: 'tabular-nums' },
       track: {
         position: 'relative',
-        height: 4,
+        height: 5,
         borderRadius: 999,
         background: 'var(--dsw-alias-bg-layer-2)',
         overflow: 'hidden',
       },
-      bar: {
+      fill: {
         position: 'absolute',
+        left: 0,
         top: 0,
         bottom: 0,
-        left: 0,
-        width: '28%',
         borderRadius: 999,
         background: 'var(--dsw-alias-brand-primary)',
-        animation: 'er-slide 1.25s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        willChange: 'transform',
+        transition: 'width 320ms ease',
       },
-      resultHead: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 12,
-        flexWrap: 'wrap',
-      },
-      frameWrap: {
-        border: '1px solid var(--dsw-alias-border-l1)',
-        borderRadius: 10,
-        overflow: 'hidden',
-        background: '#ffffff',
-      },
-      frame: {
-        width: '100%',
-        border: 'none',
-        display: 'block',
-        background: '#ffffff',
-      },
+      doc: { padding: '4px 0 0' },
     }
 
     function SidebarIcon(props) {
@@ -238,6 +209,36 @@ window.__ModuleLoader__.load({
       )
     }
 
+    /**
+     * Scope the skill's print stylesheet to `.er-doc` so its global rules
+     * (body/h1/mark …) cannot restyle the surrounding Harness UI.
+     */
+    function scopeCss(source, scope) {
+      const withoutPage = String(source).replace(/@page[^{]*\{[^}]*\}/g, '')
+      return withoutPage.replace(/(^|\})\s*([^{}@]+)\{/g, (match, prefix, selectors) => {
+        const scoped = selectors
+          .split(',')
+          .map((raw) => {
+            const selector = raw.trim()
+            if (!selector) return selector
+            if (selector === ':root' || selector === 'html' || selector === 'body') return scope
+            if (selector.startsWith(scope)) return selector
+            return `${scope} ${selector}`
+          })
+          .join(', ')
+        return `${prefix}${scoped}{`
+      })
+    }
+
+    /** Strip anything executable: the document renders in the panel's own origin. */
+    function sanitize(html) {
+      return String(html)
+        .replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')
+        .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
+        .replace(/javascript:/gi, '')
+    }
+
     function Panel({ locale }) {
       const zh = locale !== 'en'
       const t = (key) => (zh ? TEXT_ZH : TEXT_EN)[key] || key
@@ -245,14 +246,17 @@ window.__ModuleLoader__.load({
       const [text, setText] = React.useState('')
       const [fileName, setFileName] = React.useState('')
       const [dragging, setDragging] = React.useState(false)
-      const [phase, setPhase] = React.useState('input') // input | running | result
+      const [phase, setPhase] = React.useState('input')
       const [fragment, setFragment] = React.useState('')
       const [css, setCss] = React.useState('')
-      const [chars, setChars] = React.useState(0)
+      const [pct, setPct] = React.useState(0)
       const [seconds, setSeconds] = React.useState(0)
       const [status, setStatus] = React.useState(null)
-      const [frameHeight, setFrameHeight] = React.useState(420)
+
       const abortRef = React.useRef(null)
+      const accRef = React.useRef('')
+      const startRef = React.useRef(0)
+      const expectedRef = React.useRef(2000)
 
       React.useEffect(
         () => () => {
@@ -261,24 +265,33 @@ window.__ModuleLoader__.load({
         [],
       )
 
-      React.useEffect(() => {
-        if (phase !== 'running') return undefined
-        const started = Date.now()
-        const timer = setInterval(() => setSeconds(Math.round((Date.now() - started) / 1000)), 1000)
-        return () => clearInterval(timer)
-      }, [phase])
-
-      const ensureCss = async () => {
+      const loadCss = React.useCallback(async () => {
         if (css) return css
         try {
           const response = await fetch(`${API}/style.css`)
-          const text = await response.text()
-          setCss(text)
-          return text
+          setCss(scopeCss(await response.text(), '.er-doc'))
         } catch {
           return ''
         }
-      }
+      }, [css])
+
+      React.useEffect(() => {
+        void loadCss()
+      }, [loadCss])
+
+      // Drives both the clock and the estimate, so the bar keeps moving even
+      // while the model is quiet between deltas.
+      React.useEffect(() => {
+        if (phase !== 'running') return undefined
+        const timer = setInterval(() => {
+          const elapsed = (Date.now() - startRef.current) / 1000
+          setSeconds(Math.round(elapsed))
+          const byChars = accRef.current.length / expectedRef.current
+          const byTime = (1 - Math.exp(-elapsed / 38)) * 0.92
+          setPct(Math.min(96, Math.round(Math.max(byChars, byTime) * 100)))
+        }, 500)
+        return () => clearInterval(timer)
+      }, [phase])
 
       const readDropped = async (file) => {
         const name = (file.name || '').toLowerCase()
@@ -305,12 +318,15 @@ window.__ModuleLoader__.load({
 
         const controller = new AbortController()
         abortRef.current = controller
+        accRef.current = ''
+        startRef.current = Date.now()
+        expectedRef.current = Math.max(1500, Math.min(22000, material.length * 4.2))
         setFragment('')
-        setChars(0)
+        setPct(2)
         setSeconds(0)
         setStatus(null)
         setPhase('running')
-        await ensureCss()
+        await loadCss()
 
         try {
           const response = await fetch(`${API}/analyze`, {
@@ -327,7 +343,6 @@ window.__ModuleLoader__.load({
           const reader = response.body.getReader()
           const decoder = new TextDecoder()
           let buffer = ''
-          let acc = ''
           let lastPaint = 0
 
           for (;;) {
@@ -347,11 +362,11 @@ window.__ModuleLoader__.load({
                 continue
               }
               if (event.delta) {
-                acc += event.delta
+                accRef.current += event.delta
                 const now = Date.now()
-                if (now - lastPaint > 250) {
+                if (now - lastPaint > 220) {
                   lastPaint = now
-                  setChars(acc.replace(/\s+/g, '').length)
+                  setFragment(accRef.current)
                 }
               } else if (event.error) {
                 throw new Error(event.error)
@@ -359,8 +374,8 @@ window.__ModuleLoader__.load({
             }
           }
 
-          setChars(acc.replace(/\s+/g, '').length)
-          setFragment(acc)
+          setFragment(accRef.current)
+          setPct(100)
           setPhase('result')
           setStatus({ ok: true, text: t('ready') })
         } catch (error) {
@@ -369,7 +384,7 @@ window.__ModuleLoader__.load({
           } else {
             setStatus({ ok: false, text: `${t('failed')}：${(error && error.message) || error}` })
           }
-          setPhase(fragment ? 'result' : 'input')
+          setPhase(accRef.current ? 'result' : 'input')
         } finally {
           abortRef.current = null
         }
@@ -403,102 +418,30 @@ window.__ModuleLoader__.load({
         }
       }
 
-      const keyframes = h('style', { key: 'kf' }, KEYFRAMES)
-      const header = [
-        h('h1', { key: 'title', style: styles.title }, t('title')),
-        h('p', { key: 'subtitle', style: styles.subtitle }, t('subtitle')),
-      ]
+      const busy = phase === 'running'
 
-      if (phase === 'running') {
-        return h(
-          'div',
-          { style: styles.page },
-          h(
+      const progress = busy
+        ? h(
             'div',
-            { style: styles.inner },
-            keyframes,
-            header,
+            { style: styles.stickyBar },
             h(
               'div',
-              { style: styles.progressCard },
-              h(
-                'div',
-                { style: styles.progressHead },
-                h('span', null, `${t('running')}…`),
-                h('span', { style: styles.progressMeta }, `${t('elapsed')} ${seconds}s · ${t('produced')} ${chars} ${t('chars')}`),
-              ),
-              h('div', { style: styles.track }, h('div', { style: styles.bar })),
+              { style: styles.barHead },
+              h('span', null, `${t('running')} · ${pct}%`),
+              h('span', null, `${t('elapsed')} ${seconds}s`),
             ),
-          ),
-        )
-      }
+            h('div', { style: styles.track }, h('div', { style: { ...styles.fill, width: `${pct}%` } })),
+          )
+        : null
 
-      if (phase === 'result') {
-        // No sandbox: the height has to be measured from the document, which
-        // needs same-origin access. Model output is stripped of scripts and
-        // inline handlers first, so the frame cannot execute anything.
-        const safe = String(fragment)
-          .replace(/<script[\s\S]*?<\/script>/gi, '')
-          .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')
-          .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
-          .replace(/javascript:/gi, '')
-        const doc = `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><style>${css}</style></head><body>${safe}</body></html>`
-
-        const measure = (event) => {
-          try {
-            const win = event.target.contentWindow
-            const body = win && win.document && win.document.body
-            if (!body) return
-            const height = Math.ceil(Math.max(body.scrollHeight, body.offsetHeight))
-            if (height > 0) setFrameHeight(Math.min(Math.max(height + 12, 240), 12000))
-          } catch {
-            /* measurement is best-effort */
-          }
-        }
-
-        return h(
-          'div',
-          { style: styles.page },
-          h(
-            'div',
-            { style: styles.inner },
-            keyframes,
-            header,
-            h(
-              'div',
-              { style: styles.resultHead },
-              h('span', { style: status && !status.ok ? styles.statusError : styles.status }, status ? status.text : ''),
-              h(
-                'div',
-                { style: styles.actions },
-                h('button', { type: 'button', style: styles.primary, onClick: downloadPdf }, t('download')),
-                h(
-                  'button',
-                  {
-                    type: 'button',
-                    style: styles.secondary,
-                    onClick: () => {
-                      setPhase('input')
-                      setFragment('')
-                      setStatus(null)
-                    },
-                  },
-                  t('again'),
-                ),
-              ),
-            ),
-            h(
-              'div',
-              { style: styles.frameWrap },
-              h('iframe', {
-                style: { ...styles.frame, height: frameHeight },
-                srcDoc: doc,
-                onLoad: measure,
-              }),
-            ),
-          ),
-        )
-      }
+      const document_ = fragment
+        ? h('div', {
+            className: 'er-doc',
+            style: styles.doc,
+            // Model HTML is sanitised above; the stylesheet is the skill's own.
+            dangerouslySetInnerHTML: { __html: sanitize(fragment) },
+          })
+        : null
 
       return h(
         'div',
@@ -506,66 +449,100 @@ window.__ModuleLoader__.load({
         h(
           'div',
           { style: styles.inner },
-          keyframes,
-          header,
-          h(
-            'div',
-            {
-              style: {
-                ...styles.zone,
-                borderColor: dragging ? 'var(--dsw-alias-brand-primary)' : 'var(--dsw-alias-border-l2)',
-                background: dragging ? 'var(--dsw-alias-bg-layer-2)' : 'var(--dsw-alias-bg-layer-1)',
-              },
-              onDragOver: (event) => {
-                event.preventDefault()
-                setDragging(true)
-              },
-              onDragLeave: () => setDragging(false),
-              onDrop: async (event) => {
-                event.preventDefault()
-                setDragging(false)
-                const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]
-                if (file) await readDropped(file)
-              },
-            },
-            h('textarea', {
-              style: styles.zoneInput,
-              placeholder: t('zonePlaceholder'),
-              value: text,
-              onChange: (event) => {
-                setText(event.target.value)
-                setFileName('')
-                setStatus(null)
-              },
-            }),
-            h(
-              'div',
-              { style: styles.zoneFooter },
-              h('span', null, fileName ? `${fileName} · ${text.length}` : `${text.length} ${t('chars')}`),
-              text
-                ? h(
-                    'button',
-                    {
-                      type: 'button',
-                      style: styles.linkButton,
-                      onClick: () => {
-                        setText('')
-                        setFileName('')
-                        setStatus(null)
-                      },
-                    },
-                    t('clear'),
-                  )
-                : null,
-            ),
-          ),
+          css ? h('style', { key: 'css' }, css) : null,
+          h('h1', { style: styles.title }, t('title')),
+          h('p', { style: styles.subtitle }, t('subtitle')),
+          progress,
+
+          phase === 'input'
+            ? h(
+                'div',
+                {
+                  style: {
+                    ...styles.zone,
+                    borderColor: dragging ? 'var(--dsw-alias-brand-primary)' : 'var(--dsw-alias-border-l2)',
+                    background: dragging ? 'var(--dsw-alias-bg-layer-2)' : 'var(--dsw-alias-bg-layer-1)',
+                  },
+                  onDragOver: (event) => {
+                    event.preventDefault()
+                    setDragging(true)
+                  },
+                  onDragLeave: () => setDragging(false),
+                  onDrop: async (event) => {
+                    event.preventDefault()
+                    setDragging(false)
+                    const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]
+                    if (file) await readDropped(file)
+                  },
+                },
+                h('textarea', {
+                  style: styles.zoneInput,
+                  placeholder: t('zonePlaceholder'),
+                  value: text,
+                  onChange: (event) => {
+                    setText(event.target.value)
+                    setFileName('')
+                    setStatus(null)
+                  },
+                }),
+                h(
+                  'div',
+                  { style: styles.zoneFooter },
+                  h('span', null, fileName ? `${fileName} · ${text.length}` : `${text.length} ${t('chars')}`),
+                  text
+                    ? h(
+                        'button',
+                        {
+                          type: 'button',
+                          style: styles.linkButton,
+                          onClick: () => {
+                            setText('')
+                            setFileName('')
+                            setStatus(null)
+                          },
+                        },
+                        t('clear'),
+                      )
+                    : null,
+                ),
+              )
+            : null,
+
+          document_,
+
           h(
             'div',
             { style: styles.actions },
-            h('button', { type: 'button', style: styles.primary, onClick: analyse }, t('start')),
+            phase === 'input'
+              ? h('button', { type: 'button', style: styles.primary, onClick: analyse }, t('start'))
+              : null,
+            phase === 'result'
+              ? h(
+                  'button',
+                  { type: 'button', style: styles.primary, onClick: downloadPdf, disabled: !fragment.trim() },
+                  t('download'),
+                )
+              : null,
+            phase === 'result'
+              ? h(
+                  'button',
+                  {
+                    type: 'button',
+                    style: styles.secondary,
+                    onClick: () => {
+                      setPhase('input')
+                      setFragment('')
+                      setPct(0)
+                      setStatus(null)
+                    },
+                  },
+                  t('again'),
+                )
+              : null,
             status ? h('span', { style: status.ok ? styles.status : styles.statusError }, status.text) : null,
           ),
-          h('p', { style: styles.note }, t('note')),
+
+          phase === 'input' ? h('p', { style: styles.note }, t('note')) : null,
         ),
       )
     }
