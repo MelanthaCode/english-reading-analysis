@@ -1,7 +1,6 @@
 {
   "name": "dsh-skill-english-reading",
   "version": "1.0.0",
-  "private": true,
   "type": "module",
   "description": "English reading analysis as a DSH plugin: turns English passages and exam papers into Chinese analysis with a print-ready A4 PDF. Registers the skill into the Harness skill catalog on install.",
   "exports": {
@@ -36,6 +35,22 @@
     "bundle": {
       "patch": "./cordis.patch.yml"
     }
+  },
+  "homepage": "https://github.com/MelanthaCode/english-reading-analysis/tree/main/dsh-plugin",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MelanthaCode/english-reading-analysis.git",
+    "directory": "dsh-plugin"
+  },
+  "bugs": {
+    "url": "https://github.com/MelanthaCode/english-reading-analysis/issues"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "license": "MIT",
   "author": "Melantha"
