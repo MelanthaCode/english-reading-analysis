@@ -321,7 +321,16 @@ export function apply(ctx) {
       if (!produced) throw new Error('模型没有返回文本')
       send({ done: true })
     } catch (error) {
-      send({ error: String(error?.message || error) })
+      const detail = String(error?.message || error)
+      // Images were attempted (capability unknown), so the failure most likely
+      // means the model refused the image blocks. Say that instead of leaking a
+      // bare provider error.
+      send({
+        error: images.length
+          ? `尝试解析图片失败，请确认当前模型（${selection.provider}/${selection.model}）是否支持视觉输入；` +
+            `也可以把扫描件作为附件发到对话里。原始错误：${detail}`
+          : detail,
+      })
     } finally {
       res.end()
     }
