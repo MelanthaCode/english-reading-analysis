@@ -201,9 +201,10 @@ window.__ModuleLoader__.load({
       docHost: { display: 'block', marginTop: 4 },
     }
 
-    // 20-unit grid, set as type rather than drawn as strokes: a regular sans A
-    // on the left and 文 on the right, staggered down and in, so the pair sits on
-    // the diagonal without touching. System faces only — nothing to install.
+    // 20-unit grid. A is set large (ink y 0–14); 文 is 70% of that height, dropped
+    // to y 6–20 and tilted 11° so its bar tucks under A's right foot instead of
+    // crossing it. Two dense glyphs cannot both fill the square and stay apart —
+    // this is the largest pair that still reads as two marks.
     const FONT_A = "'Helvetica Neue', Arial, 'PingFang SC', sans-serif"
     const FONT_WEN = "'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif"
 
@@ -219,29 +220,11 @@ window.__ModuleLoader__.load({
           'aria-hidden': true,
           style: { display: 'block' },
         },
+        h('text', { x: 5.0, y: 13.6, textAnchor: 'middle', fontFamily: FONT_A, fontSize: 17.5, fontWeight: 500 }, 'A'),
         h(
-          'text',
-          {
-            x: 5.2,
-            y: 12.6,
-            textAnchor: 'middle',
-            fontFamily: FONT_A,
-            fontSize: 11,
-            fontWeight: 500,
-          },
-          'A',
-        ),
-        h(
-          'text',
-          {
-            x: 15.2,
-            y: 19.2,
-            textAnchor: 'middle',
-            fontFamily: FONT_WEN,
-            fontSize: 9.6,
-            fontWeight: 500,
-          },
-          '文',
+          'g',
+          { transform: 'rotate(-11 15.7 15.8)' },
+          h('text', { x: 15.7, y: 20, textAnchor: 'middle', fontFamily: FONT_WEN, fontSize: 12.2, fontWeight: 500 }, '文'),
         ),
       )
     }
