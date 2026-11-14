@@ -24,6 +24,10 @@ const ROUTE_PREFIX = '/x-english-reading'
 const PYTHON = process.platform === 'win32' ? 'python' : 'python3'
 const BOOT_REPORT = '/tmp/english-reading-boot.json'
 const EXT_TEXT = ['txt', 'md', 'markdown', 'text', 'csv']
+const EXT_IMAGE = ['png', 'jpg', 'jpeg', 'webp', 'gif']
+const IMAGE_MEDIA = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' }
+const MAX_SCAN_PAGES = 8
+const SCAN_WIDTH = 1500
 
 // Only services that must exist for apply() to be meaningful go here.
 // `webServer` is acquired with ctx.inject() below: that callback form is what the
@@ -223,7 +227,8 @@ export function apply(ctx) {
     }
 
     const text = String(payload?.text || '').trim()
-    if (!text) return sendJson(res, 400, { error: 'empty text' })
+    const images = Array.isArray(payload?.images) ? payload.images.slice(0, MAX_SCAN_PAGES) : []
+    if (!text && !images.length) return sendJson(res, 400, { error: 'empty input' })
 
     const llm = llmService()
     const model = modelService()
@@ -249,11 +254,51 @@ export function apply(ctx) {
     req.on('close', () => controller.abort())
 
     try {
+      let content
+      if (images.length) {
+        const attachments = getService('attachments')
+        if (!attachments) {
+          return sendJson(res, 503, { error: '附件服务不可用，无法处理图片' })
+        }
+        let modalities = []
+        try {
+          const info = await llm.resolveModelInfo(selection.provider, selection.model)
+          modalities = info?.inputModalities || []
+        } catch {
+          modalities = []
+        }
+        if (!modalities.includes('image')) {
+          return sendJson(res, 415, {
+            error:
+              `当前模型（${selection.provider}/${selection.model}）不支持图片输入，` +
+              '扫描件请在对话里作为附件发送，或在设置里换一个支持视觉的模型。',
+          })
+        }
+        const refs = await attachments.saveImages(
+          images.map((image) => ({
+            data: Buffer.from(String(image.data || ''), 'base64'),
+            mediaType: image.mediaType || 'image/png',
+            name: image.name || 'page.png',
+          })),
+        )
+        content = [
+          ...refs.map((ref) => ({ type: 'image', attachment: ref })),
+          {
+            type: 'text',
+            text:
+              `以下是扫描件页面图片，共 ${refs.length} 页。请先逐页如实转录原文，再按技能要求分析。\n\n` +
+              (text ? `补充说明：${text}` : ''),
+          },
+        ]
+      } else {
+        content = [{ type: 'text', text: `材料如下：\n\n${text}` }]
+      }
+
       const options = {
         provider: selection.provider,
         model: selection.model,
         system: buildSystemPrompt(),
-        messages: [{ role: 'user', content: [{ type: 'text', text: `材料如下：\n\n${text}` }] }],
+        messages: [{ role: 'user', content }],
         signal: controller.signal,
       }
       if (selection.reasoningEffort) options.reasoningEffort = selection.reasoningEffort
@@ -312,6 +357,26 @@ export function apply(ctx) {
     return runCapture(PYTHON, ['-c', script, file])
   }
 
+  /** Render the first pages of a PDF to PNGs for a vision-capable model. */
+  const pdfPagesToImages = async (buffer, workDir) => {
+    const file = join(workDir, 'scan.pdf')
+    await writeFile(file, buffer)
+    const prefix = join(workDir, 'page')
+    await runCapture('pdftoppm', [
+      '-png',
+      '-scale-to', String(SCAN_WIDTH),
+      '-f', '1',
+      '-l', String(MAX_SCAN_PAGES),
+      file,
+      prefix,
+    ])
+    const { readdir } = await import('node:fs/promises')
+    const pages = (await readdir(workDir))
+      .filter((name) => /^page-\d+\.png$/.test(name))
+      .sort((a, b) => Number(a.match(/\d+/)[0]) - Number(b.match(/\d+/)[0]))
+    return pages.map((name) => ({ path: join(workDir, name), mediaType: 'image/png' }))
+  }
+
   /** Text layer of a PDF, or a clear "no text layer" signal for scans. */
   const pdfToText = async (buffer, workDir) => {
     const file = join(workDir, 'source.pdf')
@@ -329,12 +394,7 @@ export function apply(ctx) {
     }
     const clean = text.replace(/\u0000/g, '').trim()
     if (clean.length < 40) {
-      return {
-        scanned: true,
-        error:
-          '这份 PDF 没有文字层（扫描件或图片导出）。面板只能处理文字，' +
-          '请把它作为附件发到对话里，由我直接看图分析。',
-      }
+      return { scanned: true, pages: await pdfPagesToImages(buffer, workDir) }
     }
     return { text: clean, kind: 'pdf' }
   }
@@ -395,7 +455,7 @@ export function apply(ctx) {
     }
   }
 
-  const health = (_req, res) => {
+  const health = async (_req, res) => {
     const model = modelService()
     let selection = null
     try {
@@ -403,11 +463,24 @@ export function apply(ctx) {
     } catch (error) {
       selection = { error: String(error?.message || error) }
     }
+    let vision = null
+    const llm = llmService()
+    if (llm && selection && selection.provider) {
+      try {
+        const info = await llm.resolveModelInfo(selection.provider, selection.model)
+        vision = (info?.inputModalities || []).includes('image')
+      } catch {
+        vision = null
+      }
+    }
+
     sendJson(res, 200, {
       ok: true,
       plugin: 'dsh-skill-english-reading',
+      vision,
       hasLlm: Boolean(llmService()),
       hasModel: Boolean(model),
+      hasAttachments: Boolean(getService('attachments')),
       model: selection,
     })
   }
@@ -437,21 +510,32 @@ export function apply(ctx) {
     if (EXT_TEXT.includes(ext)) {
       return sendJson(res, 200, { text: buffer.toString('utf8'), kind: 'text' })
     }
+    if (EXT_IMAGE.includes(ext)) {
+      return sendJson(res, 200, {
+        kind: 'image',
+        images: [{ mediaType: IMAGE_MEDIA[ext], data: buffer.toString('base64'), name }],
+      })
+    }
 
     let work
     try {
       work = await mkdtemp(join(tmpdir(), 'english-reading-file-'))
       if (ext === 'docx') {
         const text = await docxToText(buffer, work)
-        if (!text.trim()) return sendJson(res, 200, { text: '', kind: 'docx' })
         return sendJson(res, 200, { text: text.trim(), kind: 'docx' })
       }
       if (ext === 'pdf') {
         const result = await pdfToText(buffer, work)
-        return sendJson(res, result.text ? 200 : 422, result)
+        if (result.text) return sendJson(res, 200, result)
+        if (result.error) return sendJson(res, 422, result)
+        const pages = []
+        for (const page of result.pages.slice(0, MAX_SCAN_PAGES)) {
+          pages.push({ mediaType: page.mediaType, data: (await readFile(page.path)).toString('base64') })
+        }
+        return sendJson(res, 200, { kind: 'scan', images: pages, pages: pages.length })
       }
       return sendJson(res, 415, {
-        error: `不支持的文件类型 .${ext}，目前支持 txt / md / docx / pdf`,
+        error: `不支持的文件类型 .${ext}，目前支持 txt / md / csv / docx / pdf / 图片`,
       })
     } catch (error) {
       return sendJson(res, 500, { error: String(error?.message || error) })

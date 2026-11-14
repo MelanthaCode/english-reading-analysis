@@ -38,7 +38,7 @@ window.__ModuleLoader__.load({
       start: '开始分析',
       running: '正在分析',
       elapsed: '已用时',
-      note: '支持 txt、md、Word（.docx）、带文字层的 PDF；扫描件与照片请在对话里作为附件发送。',
+      note: '支持 txt、md、Word、PDF（含扫描件）与图片；扫描件会逐页转成图片交给模型识读。',
       empty: '先粘贴英文，或拖入一个文本文件。',
       fileLoaded: '文件已读入',
       unsupportedFile: '不支持这个格式，目前支持 txt / md / docx / pdf。',
@@ -46,6 +46,7 @@ window.__ModuleLoader__.load({
       extracting: '正在解析',
       pickFile: '选择文件',
       charsReady: '字符',
+      pagesLoaded: '页图片已载入',
       failed: '失败',
       download: '下载 PDF',
       preparing: '正在渲染 PDF…',
@@ -64,7 +65,7 @@ window.__ModuleLoader__.load({
       start: 'Analyse',
       running: 'Analysing',
       elapsed: 'elapsed',
-      note: 'Accepts txt, md, Word (.docx) and PDFs with a text layer; send scans or photos in the conversation.',
+      note: 'Accepts txt, md, Word, PDF (scans included) and images; scanned pages are rendered and read by the model.',
       empty: 'Paste the English first, or drop a text file.',
       fileLoaded: 'File loaded',
       unsupportedFile: 'Unsupported format — txt / md / docx / pdf only.',
@@ -72,6 +73,7 @@ window.__ModuleLoader__.load({
       extracting: 'Reading',
       pickFile: 'Choose file',
       charsReady: 'characters',
+      pagesLoaded: 'page images loaded',
       failed: 'Failed',
       download: 'Download PDF',
       preparing: 'Rendering PDF…',
@@ -294,6 +296,7 @@ window.__ModuleLoader__.load({
 
       const [text, setText] = React.useState('')
       const [fileName, setFileName] = React.useState('')
+      const [images, setImages] = React.useState([])
       const [dragging, setDragging] = React.useState(false)
       const [phase, setPhase] = React.useState('input')
       const [fragment, setFragment] = React.useState('')
@@ -376,12 +379,23 @@ window.__ModuleLoader__.load({
             setStatus({ ok: false, text: body.error || `HTTP ${response.status}` })
             return
           }
-          setText(body.text || '')
-          setFileName(file.name || '')
-          setStatus({
-            ok: true,
-            text: `${file.name} · ${(body.text || '').length} ${t('charsReady')}`,
-          })
+          if (body.images && body.images.length) {
+            setImages(body.images)
+            setText(body.text || '')
+            setFileName(file.name || '')
+            setStatus({
+              ok: true,
+              text: `${file.name} · ${body.images.length} ${t('pagesLoaded')}`,
+            })
+          } else {
+            setImages([])
+            setText(body.text || '')
+            setFileName(file.name || '')
+            setStatus({
+              ok: true,
+              text: `${file.name} · ${(body.text || '').length} ${t('charsReady')}`,
+            })
+          }
         } catch (error) {
           setStatus({ ok: false, text: `${t('readFailed')} ${(error && error.message) || error}` })
         }
@@ -389,7 +403,7 @@ window.__ModuleLoader__.load({
 
       const analyse = async () => {
         const material = text.trim()
-        if (!material) {
+        if (!material && !images.length) {
           setStatus({ ok: false, text: t('empty') })
           return
         }
@@ -410,7 +424,7 @@ window.__ModuleLoader__.load({
           const response = await fetch(`${API}/analyze`, {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ text: material }),
+            body: JSON.stringify({ text: material, images }),
             signal: controller.signal,
           })
           if (!response.ok) {
@@ -577,6 +591,7 @@ window.__ModuleLoader__.load({
                             onClick: () => {
                               setText('')
                               setFileName('')
+                              setImages([])
                               setStatus(null)
                             },
                           },
