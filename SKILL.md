@@ -1,11 +1,11 @@
 ---
 name: english-reading-analysis
-description: 分析英语文章或英语试卷：逐篇给出原文与中文翻译、题目选项答案、作答对错分析、长难句拆解，可输出 A4 打印 PDF。Use when the user supplies an English passage or a scanned/photographed English test paper and asks for full translation, answers with explanations, error analysis of a marked paper, or grammar breakdown of difficult sentences.
+description: 把英语阅读材料转成中文：逐篇给出原文与中文翻译、题目选项答案、作答对错分析、长难句句法拆解，可输出 A4 打印 PDF。Use when the user supplies an English passage or a scanned/photographed English test paper and asks to translate it into Chinese, get answers with explanations, check a marked paper, or break down difficult sentences.
 ---
 
 # 英语阅读分析
 
-输入是一篇英语文章或一份英语试卷，输出是一份可打印的 A4 文档。**每篇文章独立成块**，块内顺序固定：
+输入是一篇英语文章或一份英语试卷，输出是**中文**分析文档并可直接打印。**每篇文章独立成块**，块内顺序固定：
 
 ```
 文章 N：<主题>
