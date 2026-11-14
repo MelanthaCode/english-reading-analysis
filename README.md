@@ -6,6 +6,8 @@
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-d97757)](#安装)
 ![Version](https://img.shields.io/badge/version-1.0.0-green)
 
+> **把英语试卷丢给 AI，输出可打印的中文解析。**
+
 一个给 AI Agent 用的技能：把**英语阅读材料转成中文**——文章逐段翻译，试卷题目与选项翻译并给出答案，复杂长难句做句法拆解，最后输出一份可打印的 A4 文档。
 
 核心是**英译中**：长难句分析是其中一环，不是全部。
