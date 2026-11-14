@@ -203,32 +203,64 @@ window.__ModuleLoader__.load({
 
     function SidebarIcon(props) {
       const size = (props && props.size) || 20
-      const stroke = props && props.active ? C.coral : 'currentColor'
+      const ink = props && props.active ? C.coral : 'currentColor'
       return h(
         'svg',
         {
           width: size,
           height: size,
-          viewBox: '0 0 24 24',
+          viewBox: '0 0 32 32',
           fill: 'none',
           'aria-hidden': true,
           style: { display: 'block' },
         },
+        h(
+          'text',
+          {
+            x: 1.5,
+            y: 21.5,
+            fontSize: 13,
+            fontWeight: 600,
+            fontFamily: 'Georgia, "Times New Roman", serif',
+            fill: ink,
+          },
+          'A',
+        ),
         h('path', {
-          d: 'M6 3.5h9.5a2 2 0 0 1 2 2v15a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-15a2 2 0 0 1 2-2z',
-          stroke,
-          strokeWidth: 1.6,
+          d: 'M13.2 15.5h4.6M15.6 12.4 18.7 15.5l-3.1 3.1',
+          stroke: C.coral,
+          strokeWidth: 1.9,
+          strokeLinecap: 'round',
           strokeLinejoin: 'round',
         }),
-        h('path', { d: 'M13.5 3.5h3v6l-1.5-1.6-1.5 1.6z', fill: stroke }),
-        h('path', {
-          d: 'M7.5 13h7M7.5 16.5h4.5',
-          stroke,
-          strokeWidth: 1.6,
-          strokeLinecap: 'round',
-          opacity: 0.7,
-        }),
+        h(
+          'text',
+          {
+            x: 19.4,
+            y: 21.5,
+            fontSize: 11.5,
+            fontWeight: 600,
+            fontFamily: '"Songti SC", "SimSun", "Noto Serif CJK SC", serif',
+            fill: ink,
+          },
+          '文',
+        ),
       )
+    }
+
+    /** Pull a short Chinese topic out of the rendered document for the filename. */
+    function topicOf(fragment) {
+      const flat = (value) => String(value).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+      const html = String(fragment || '')
+      const heading = /<h1[^>]*>([\s\S]*?)<\/h1>/i.exec(html) || /<h2[^>]*>([\s\S]*?)<\/h2>/i.exec(html)
+      let title = heading ? flat(heading[1]) : flat(html).slice(0, 40)
+      title = title.replace(/^文章\s*\d+\s*[：:·\-]?\s*/, '')
+      const afterColon = /[：:]\s*(.+)$/.exec(title)
+      if (afterColon) title = afterColon[1]
+      const parenthetical = /[（(]([^）)]{2,24})[）)]/.exec(title)
+      if (parenthetical) title = parenthetical[1]
+      title = title.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim()
+      return (title || '英语阅读分析').slice(0, 24)
     }
 
     /** Strip anything executable: the document renders inside the panel's origin. */
@@ -440,7 +472,7 @@ window.__ModuleLoader__.load({
           const url = URL.createObjectURL(blob)
           const link = document.createElement('a')
           link.href = url
-          link.download = 'english-reading-analysis.pdf'
+          link.download = `ERA_${topicOf(fragment)}.pdf`
           document.body.appendChild(link)
           link.click()
           document.body.removeChild(link)
