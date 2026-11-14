@@ -245,15 +245,19 @@ window.__ModuleLoader__.load({
      * needs only one edit: the document-level selectors become `:host`.
      */
     function toShadowCss(css) {
-      return String(css)
+      const scoped = String(css)
         .replace(/@page[^{]*\{[^}]*\}/g, '')
-        .replace(/(^|\})\s*(html\s*,\s*body|html|body|:root)\s*\{/g, '$1:host{')
-        .replace(
-          /:host\s*\{([^}]*)\}/,
-          (match, body) =>
-            `:host{${body};display:block;padding:28px 32px 32px;border-radius:12px;` +
-            `box-shadow:0 1px 2px rgba(119,67,24,.06),0 8px 24px rgba(119,67,24,.08)}`,
-        )
+        // `:root` may follow a comment (`*/`) rather than a `}` or the start of
+        // the file, so anchor on any preceding newline or brace as well. Missing
+        // that left the custom properties outside the shadow tree, which silently
+        // killed every var() consumer: the number badge and the coloured
+        // underlines below.
+        .replace(/(^|[\n}])\s*(?:html\s*,\s*body|html|body|:root)\s*\{/g, (match, prefix) => `${prefix}:host{`)
+      return (
+        scoped +
+        '\n:host{display:block;padding:28px 32px 32px;border-radius:12px;' +
+        'box-shadow:0 1px 2px rgba(119,67,24,.06),0 8px 24px rgba(119,67,24,.08)}'
+      )
     }
 
     function Panel({ locale }) {
