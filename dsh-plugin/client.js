@@ -201,20 +201,24 @@ window.__ModuleLoader__.load({
       docHost: { display: 'block', marginTop: 4 },
     }
 
-    // Lucide `languages` (ISC), inlined: the client module table only provides
-    // `react`, so a package dependency would have to be bundled. These paths are
-    // the ones the shell's own rail icons use, so the weight matches.
-    const LANGUAGES_PATHS = [
-      'm5 8 6 6',
-      'm4 14 6-6 2-3',
-      'M2 5h12',
-      'M7 2h1',
-      'm22 22-5-10-5 10',
-      'M14 18h6',
+    // Hand-drawn in the Lucide idiom (24 grid, round caps, 2px stroke):
+    // A on the left, a curved arrow to 文 on the right. The arrow is dropped
+    // below 28px because three elements inside a 20px box turn into a smudge —
+    // the usual optical-size trade-off rather than a stylistic choice.
+    const GLYPH_PATHS = [
+      'M2.6 19.4 5.7 10.6l3.1 8.8',
+      'M4 15.8h3.4',
+      'M17.6 8.6v1.7',
+      'M14 11.5h7.2',
+      'M14.6 14.2 20.4 19.8',
+      'M20 14.2 14.2 19.8',
     ]
+    const ARC_PATH = 'M8.6 7.6c1.5-2.5 3.8-2.8 5.1-1.4'
+    const ARC_HEAD = 'M13.1 4.7 15.4 6.2 12.9 7.5z'
 
     function SidebarIcon(props) {
       const size = (props && props.size) || 20
+      const withArc = size >= 28
       return h(
         'svg',
         {
@@ -229,7 +233,9 @@ window.__ModuleLoader__.load({
           'aria-hidden': true,
           style: { display: 'block' },
         },
-        LANGUAGES_PATHS.map((d, i) => h('path', { key: i, d })),
+        GLYPH_PATHS.map((d, i) => h('path', { key: i, d })),
+        withArc ? h('path', { key: 'arc', d: ARC_PATH }) : null,
+        withArc ? h('path', { key: 'head', d: ARC_HEAD, fill: 'currentColor', stroke: 'none' }) : null,
       )
     }
 
