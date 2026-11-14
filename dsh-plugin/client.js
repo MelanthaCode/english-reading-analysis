@@ -201,17 +201,11 @@ window.__ModuleLoader__.load({
       docHost: { display: 'block', marginTop: 4 },
     }
 
-    // Lucide `languages` idiom (24 grid, round caps), with the two clusters
-    // swapped: A sits top-left, 文 bottom-right, so the reading direction is
-    // English → Chinese. Still one diagonal composition, no extra ornament.
-    const GLYPH_PATHS = [
-      'M11 11 6 1 1 11',
-      'M3 7h6',
-      'M14 16 20 22',
-      'M13 22 19 16 21 13',
-      'M11 13h12',
-      'M16 10h1',
-    ]
+    // Two hand-drawn glyphs on the Lucide grid (24, round caps, 2px stroke):
+    // A tall and narrow on the left, 文 tall on the right, dropped and tilted a
+    // little so the two never collide on the diagonal.
+    const GLYPH_A = ['M4.7 1.8 0.9 19.6', 'M4.7 1.8 8.5 19.6', 'M2.1 13.8h5.2']
+    const GLYPH_WEN = ['M17.6 5 18.9 8.1', 'M12.9 10.5h9.1', 'M13.5 13.5 19.4 21.8', 'M21.2 13.5 15 21.8']
 
     function SidebarIcon(props) {
       const size = (props && props.size) || 20
@@ -231,8 +225,13 @@ window.__ModuleLoader__.load({
         },
         h(
           'g',
-          { transform: 'translate(2.2 2.2) scale(0.82)' },
-          GLYPH_PATHS.map((d, i) => h('path', { key: i, d })),
+          { transform: 'translate(1.2 1.2) scale(0.9)' },
+          GLYPH_A.map((d, i) => h('path', { key: `a${i}`, d })),
+          h(
+            'g',
+            { transform: 'rotate(-9 17.4 12.5)' },
+            GLYPH_WEN.map((d, i) => h('path', { key: `w${i}`, d })),
+          ),
         ),
       )
     }
