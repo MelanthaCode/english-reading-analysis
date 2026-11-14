@@ -201,17 +201,21 @@ window.__ModuleLoader__.load({
       docHost: { display: 'block', marginTop: 4 },
     }
 
-    // The owner's own artwork, placed unchanged: seven strokes on a 79.2 grid at
-    // the file's own 2.5 stroke width and colour. Adjustments happen at the source.
+    // The owner's own artwork, mirrored verbatim: same paths, stroke width,
+    // colour and viewBox as dsh-plugin/icon.svg. No design adjustments here.
     const ICON_PATHS = [
-      'M20.2351 1.32847 1.23843 51.5864',
-      'M20.4668 1.32847 39.4634 51.5864',
-      'M30.91 29.8725 9.94088 29.8725',
-      'M78.4033 39.8395 40.4913 39.8395',
-      'M49.7008 40.2061 77.5131 77.8859',
-      'M69.9867 39.8215 41.7923 78.0188',
-      'M57.8343 26.5656 60.9881 34.9092',
+      'M19.996 3.56207L3.72974 49.8979',
+      'M29.1366 29.8785L11.1814 29.8785',
+      'M20.1944 3.56207L36.4606 49.8979',
+      'M20.1944 3.56207L36.4606 49.8979',
+      'M75.7402 40.1984L41.2571 40.1984',
+      'M49.6335 40.5402L74.9305 75.6613',
+      'M68.0848 40.1817L42.4403 75.7852',
+      'M57.0315 27.8259L59.9 35.603',
     ]
+    const ICON_STROKE = 6.0
+    const ICON_COLOR = '#000000'
+    const ICON_VIEWBOX = '0 0 79.2 79.2'
 
     function SidebarIcon(props) {
       const size = (props && props.size) || 20
@@ -220,10 +224,10 @@ window.__ModuleLoader__.load({
         {
           width: size,
           height: size,
-          viewBox: '0 0 79.2 79.2',
+          viewBox: ICON_VIEWBOX,
           fill: 'none',
-          stroke: '#000000',
-          strokeWidth: 2.5,
+          stroke: ICON_COLOR,
+          strokeWidth: ICON_STROKE,
           strokeLinecap: 'round',
           strokeLinejoin: 'round',
           'aria-hidden': true,
