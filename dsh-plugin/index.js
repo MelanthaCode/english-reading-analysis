@@ -109,30 +109,46 @@ const HTML_CONTRACT = `
     <div class="ans"><span class="key">答案 A</span>定位与解析</div>
   </div>
 - 作答对错表：<table class="dat"> 表头 题号/作答/参考答案/判定/错因；勾用 <td class="ok">✓</td>，叉用 <td class="no">✗</td>
-- 长难句卡片：
+- 长难句卡片（结构固定，不得增删层级）：
   <div class="card">
-    <div class="card-h"><div class="num">1</div><div class="where">第 N 段 ｜ 27 词 ｜ 结构类型</div></div>
-    <div class="src">原句</div>
+    <div class="card-h"><div class="num">1</div><div class="where">第 N 段 ｜ N 词 ｜ 结构类型</div></div>
+    <div class="src">原句照录</div>
     <table class="fr">
       <tr><th>主句</th><td>
         <span class="seg c-s"><span class="t">主语</span><span class="l">主语</span></span>
         <span class="seg c-v"><span class="t">谓语</span><span class="l">谓语</span></span>
         <span class="seg c-o"><span class="t">宾语</span><span class="l">宾语</span></span>
       </td></tr>
-      <tr><th>定语从句</th><td>...</td></tr>
+      <tr><th>定语从句</th><td>
+        <span class="seg c-d"><span class="t">从句原词</span><span class="l">定语从句</span></span>
+      </td></tr>
     </table>
     <p class="zhs">整句中文</p>
-    <p class="note"><b>要点</b>解析</p>
+    <p class="note"><b>要点</b>结构要点</p>
     <div class="kp"><b>高频考点</b>考点</div>
   </div>
 
-成分颜色 class：c-s 主语 / c-v 谓语 / c-o 宾语 / c-d 定语从句 / c-a 状语 / c-l 补语。
-左栏 th 写成分名（主句、定语从句、状语……），右栏 td 里每个 .seg 的 .t 是原词、.l 是成分小标签。
+  卡片固定规则：
+  1. table.fr 第一行的 th 必须是「主句」；之后每行对应句子里的一层从属或并列结构，th 写层级名（定语从句 / 宾语从句 / 状语从句 / 同位语从句 / 并列分句 …），顺序与这些结构在原句中的先后一致。
+  2. 每行内按意群切分：一个意群一个 .seg，.t 是原词（顺序不变、不改写），.l 是成分名。
+  3. .seg 的 class 对应成分：c-s 主语 / c-v 谓语 / c-o 宾语或表语 / c-d 定语从句 / c-a 状语或插入语 / c-l 补语。
+  4. 只拆到意群级别，不要把名词短语、介词短语内部再拆成多个 .seg。
+  5. .src 照录原句，整句在正文里只出现一次（正文用 <mark> 标出并配 <sup class="no"> 编号）。
+  6. 同一份材料重复分析时，卡片数、层级顺序、标签用词必须保持一致。
+
 没有作答信息时不要输出作答对错表；没有题目时不要输出题目块。
 `
 
-const SYSTEM_PROMPT = (skillBody) => `${skillBody}
+const SYSTEM_PROMPT = (skillBody, sentenceRules) => `${skillBody}
 ${HTML_CONTRACT}
+
+## 长难句拆解细则（必须遵守）
+
+${sentenceRules}
+
+## 结构固定性（重要）
+
+同一段材料反复分析，产出的结构必须一致：卡片数、左栏层级顺序、成分标签用词都按上面的细则来，不要每次换一种切分方式或换一套标签。
 ## 本次调用方式
 
 你在一个面板里被直接调用：用户看不到对话过程，只会看到你的输出被渲染成和打印稿一样的版式。
@@ -141,7 +157,18 @@ ${HTML_CONTRACT}
 
 export function apply(ctx) {
   const readSkill = () => readFileSync(join(skillDir, 'SKILL.md'), 'utf8')
-  const skillBody = parseFrontmatter(readSkill()).body
+  // The long-sentence rules are what actually stabilise the card structure:
+  // without them every run invented its own table layout.
+  const readReference = (name) => {
+    try {
+      return readFileSync(join(skillDir, 'references', name), 'utf8')
+    } catch {
+      return ''
+    }
+  }
+  // Built per request so editing SKILL.md or the references needs no restart.
+  const buildSystemPrompt = () =>
+    SYSTEM_PROMPT(parseFrontmatter(readSkill()).body, readReference('sentence-analysis.md'))
 
   ctx.effect(() => {
     const { meta, body } = parseFrontmatter(readSkill())
@@ -224,7 +251,7 @@ export function apply(ctx) {
       const options = {
         provider: selection.provider,
         model: selection.model,
-        system: SYSTEM_PROMPT(skillBody),
+        system: buildSystemPrompt(),
         messages: [{ role: 'user', content: [{ type: 'text', text: `材料如下：\n\n${text}` }] }],
         signal: controller.signal,
       }

@@ -1,9 +1,9 @@
 // Client half of dsh-skill-english-reading.
 //
 // Sidebar entry + main panel. The panel posts to the Host's same-origin routes
-// and renders the reply with the skill's own stylesheet (scoped to `.er-doc`),
-// directly in the page — there is no iframe, so the whole column scrolls.
-// The PDF route is only called when the user asks for it.
+// and renders the reply with the skill's own stylesheet inside a shadow root, so
+// the document keeps its print look while the surrounding UI is untouched.
+// The PDF route is only called when the user asks for one.
 
 window.__ModuleLoader__.load({
   id: 'dsh-skill-english-reading',
@@ -14,6 +14,20 @@ window.__ModuleLoader__.load({
 
     const PANEL_ID = 'english-reading'
     const API = '/x-english-reading'
+
+    // Palette shared with the skill stylesheet (Searching for Birds language).
+    const C = {
+      paper: '#f4efe5',
+      paper2: '#fffdf8',
+      ink: '#2f2620',
+      muted: '#8a7a6c',
+      line: '#e4d8c4',
+      coral: '#f9564e',
+      gold: '#ffcc2d',
+      soft: '#ece2d0',
+      head: "'Jost','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',system-ui,sans-serif",
+      body: "'Zilla Slab',Georgia,'Times New Roman','Songti SC',SimSun,'Noto Serif CJK SC',serif",
+    }
 
     const TEXT_ZH = {
       title: '英语阅读分析',
@@ -65,21 +79,35 @@ window.__ModuleLoader__.load({
       page: {
         height: '100%',
         overflowY: 'auto',
-        padding: '26px 32px 56px',
-        color: 'var(--dsw-alias-label-primary)',
-        background: 'var(--dsw-alias-bg-base)',
+        padding: '26px 32px 64px',
+        color: C.ink,
+        background: C.paper,
         boxSizing: 'border-box',
       },
-      inner: { maxWidth: 940, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14 },
-      title: { fontSize: 20, fontWeight: 600, margin: 0 },
-      subtitle: { margin: 0, color: 'var(--dsw-alias-label-secondary)', fontSize: 13, lineHeight: 1.65 },
+      inner: { maxWidth: 940, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 },
+      title: {
+        fontSize: 23,
+        fontWeight: 600,
+        letterSpacing: '-0.01em',
+        margin: 0,
+        color: C.ink,
+        fontFamily: C.head,
+      },
+      subtitle: {
+        margin: 0,
+        color: C.muted,
+        fontSize: 13,
+        lineHeight: 1.75,
+        fontFamily: C.head,
+      },
 
       zone: {
         display: 'flex',
         flexDirection: 'column',
         minHeight: 220,
-        borderRadius: 14,
-        border: '1.5px dashed var(--dsw-alias-border-l2)',
+        borderRadius: 10,
+        border: `1.5px dashed #d9c9b2`,
+        background: C.paper2,
         boxSizing: 'border-box',
         overflow: 'hidden',
         transition: 'border-color 120ms ease, background 120ms ease',
@@ -92,10 +120,10 @@ window.__ModuleLoader__.load({
         border: 'none',
         outline: 'none',
         background: 'transparent',
-        color: 'var(--dsw-alias-label-primary)',
-        fontFamily: 'inherit',
-        fontSize: 14,
-        lineHeight: 1.7,
+        color: C.ink,
+        fontFamily: C.body,
+        fontSize: 14.5,
+        lineHeight: 1.75,
         resize: 'none',
         boxSizing: 'border-box',
       },
@@ -105,66 +133,60 @@ window.__ModuleLoader__.load({
         justifyContent: 'space-between',
         padding: '0 20px 12px',
         fontSize: 12,
-        color: 'var(--dsw-alias-label-secondary)',
+        color: C.muted,
+        fontFamily: C.head,
       },
       linkButton: {
         border: 'none',
         background: 'transparent',
-        color: 'var(--dsw-alias-brand-primary)',
+        color: C.coral,
         font: 'inherit',
         fontSize: 12,
         cursor: 'pointer',
         padding: 0,
       },
-      note: { margin: 0, fontSize: 12, lineHeight: 1.65, color: 'var(--dsw-alias-label-secondary)' },
+      note: { margin: 0, fontSize: 12, lineHeight: 1.7, color: C.muted, fontFamily: C.head },
 
       actions: { display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' },
       primary: {
-        padding: '8px 18px',
+        padding: '9px 20px',
         borderRadius: 8,
-        border: '1px solid #f9564e',
-        background: '#f9564e',
+        border: `1px solid ${C.coral}`,
+        background: C.coral,
         color: '#fffdf8',
-        fontSize: 13,
+        fontSize: 13.5,
         fontWeight: 600,
         cursor: 'pointer',
-        fontFamily: 'inherit',
+        fontFamily: C.head,
       },
       secondary: {
-        padding: '8px 16px',
+        padding: '9px 18px',
         borderRadius: 8,
-        border: '1px solid var(--dsw-alias-border-l1)',
-        background: 'var(--dsw-alias-bg-layer-1)',
-        color: 'var(--dsw-alias-label-primary)',
-        fontSize: 13,
+        border: `1px solid ${C.line}`,
+        background: C.paper2,
+        color: C.ink,
+        fontSize: 13.5,
         cursor: 'pointer',
-        fontFamily: 'inherit',
+        fontFamily: C.head,
       },
-      status: { fontSize: 12, color: 'var(--dsw-alias-label-secondary)' },
-      statusError: { fontSize: 12, color: 'var(--dsw-alias-state-error-primary)' },
+      status: { fontSize: 12, color: C.muted, fontFamily: C.head },
+      statusError: { fontSize: 12, color: '#d1453b', fontFamily: C.head },
 
-      stickyBar: {
-        position: 'sticky',
-        top: -26,
-        zIndex: 3,
-        margin: '-26px -32px 0',
-        padding: '26px 32px 12px',
-        background: 'var(--dsw-alias-bg-base)',
-      },
       barHead: {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'baseline',
         fontSize: 12,
-        color: 'var(--dsw-alias-label-secondary)',
-        marginBottom: 6,
+        color: C.muted,
+        marginBottom: 7,
+        fontFamily: C.head,
         fontVariantNumeric: 'tabular-nums',
       },
       track: {
         position: 'relative',
-        height: 5,
+        height: 6,
         borderRadius: 999,
-        background: 'var(--dsw-alias-bg-layer-2)',
+        background: C.soft,
         overflow: 'hidden',
       },
       fill: {
@@ -173,21 +195,15 @@ window.__ModuleLoader__.load({
         top: 0,
         bottom: 0,
         borderRadius: 999,
-        background: '#f9564e',
+        background: C.coral,
         transition: 'width 320ms ease',
       },
-      doc: {
-        marginTop: 4,
-        padding: '26px 30px 30px',
-        borderRadius: 12,
-        background: '#f4efe5',
-        boxShadow: '0 1px 2px rgba(119,67,24,.06), 0 8px 24px rgba(119,67,24,.08)',
-      },
+      docHost: { display: 'block', marginTop: 4 },
     }
 
     function SidebarIcon(props) {
       const size = (props && props.size) || 20
-      const stroke = props && props.active ? 'var(--dsw-alias-brand-primary)' : 'currentColor'
+      const stroke = props && props.active ? C.coral : 'currentColor'
       return h(
         'svg',
         {
@@ -215,34 +231,29 @@ window.__ModuleLoader__.load({
       )
     }
 
-    /**
-     * Scope the skill's print stylesheet to `.er-doc` so its global rules
-     * (body/h1/mark …) cannot restyle the surrounding Harness UI.
-     */
-    function scopeCss(source, scope) {
-      const withoutPage = String(source).replace(/@page[^{]*\{[^}]*\}/g, '')
-      return withoutPage.replace(/(^|\})\s*([^{}@]+)\{/g, (match, prefix, selectors) => {
-        const scoped = selectors
-          .split(',')
-          .map((raw) => {
-            const selector = raw.trim()
-            if (!selector) return selector
-            if (selector === ':root' || selector === 'html' || selector === 'body') return scope
-            if (selector.startsWith(scope)) return selector
-            return `${scope} ${selector}`
-          })
-          .join(', ')
-        return `${prefix}${scoped}{`
-      })
-    }
-
-    /** Strip anything executable: the document renders in the panel's own origin. */
+    /** Strip anything executable: the document renders inside the panel's origin. */
     function sanitize(html) {
       return String(html)
         .replace(/<script[\s\S]*?<\/script>/gi, '')
         .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')
         .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
         .replace(/javascript:/gi, '')
+    }
+
+    /**
+     * Inside a shadow root every selector is already scoped, so the stylesheet
+     * needs only one edit: the document-level selectors become `:host`.
+     */
+    function toShadowCss(css) {
+      return String(css)
+        .replace(/@page[^{]*\{[^}]*\}/g, '')
+        .replace(/(^|\})\s*(html\s*,\s*body|html|body|:root)\s*\{/g, '$1:host{')
+        .replace(
+          /:host\s*\{([^}]*)\}/,
+          (match, body) =>
+            `:host{${body};display:block;padding:28px 32px 32px;border-radius:12px;` +
+            `box-shadow:0 1px 2px rgba(119,67,24,.06),0 8px 24px rgba(119,67,24,.08)}`,
+        )
     }
 
     function Panel({ locale }) {
@@ -254,7 +265,8 @@ window.__ModuleLoader__.load({
       const [dragging, setDragging] = React.useState(false)
       const [phase, setPhase] = React.useState('input')
       const [fragment, setFragment] = React.useState('')
-      const [css, setCss] = React.useState('')
+      const [fonts, setFonts] = React.useState('')
+      const [docCss, setDocCss] = React.useState('')
       const [pct, setPct] = React.useState(0)
       const [seconds, setSeconds] = React.useState(0)
       const [status, setStatus] = React.useState(null)
@@ -263,6 +275,7 @@ window.__ModuleLoader__.load({
       const accRef = React.useRef('')
       const startRef = React.useRef(0)
       const expectedRef = React.useRef(2000)
+      const hostRef = React.useRef(null)
 
       React.useEffect(
         () => () => {
@@ -272,21 +285,31 @@ window.__ModuleLoader__.load({
       )
 
       const loadCss = React.useCallback(async () => {
-        if (css) return css
+        if (docCss) return
         try {
           const response = await fetch(`${API}/style.css`)
-          setCss(scopeCss(await response.text(), '.er-doc'))
+          const raw = await response.text()
+          const faces = (raw.match(/@font-face\{[\s\S]*?\}\s*/g) || []).join('\n')
+          setFonts(faces)
+          setDocCss(toShadowCss(raw.replace(/@font-face\{[\s\S]*?\}\s*/g, '')))
         } catch {
-          return ''
+          setDocCss('')
         }
-      }, [css])
+      }, [docCss])
 
       React.useEffect(() => {
         void loadCss()
       }, [loadCss])
 
-      // Drives both the clock and the estimate, so the bar keeps moving even
-      // while the model is quiet between deltas.
+      // Paint the document into its own shadow root: isolation without rewriting
+      // any selector, and no iframe to fight over height.
+      React.useEffect(() => {
+        const host = hostRef.current
+        if (!host || !docCss) return
+        const root = host.shadowRoot || host.attachShadow({ mode: 'open' })
+        root.innerHTML = `<style>${docCss}</style><div class="er-doc">${sanitize(fragment)}</div>`
+      }, [fragment, docCss])
+
       React.useEffect(() => {
         if (phase !== 'running') return undefined
         const timer = setInterval(() => {
@@ -370,7 +393,7 @@ window.__ModuleLoader__.load({
               if (event.delta) {
                 accRef.current += event.delta
                 const now = Date.now()
-                if (now - lastPaint > 220) {
+                if (now - lastPaint > 260) {
                   lastPaint = now
                   setFragment(accRef.current)
                 }
@@ -426,39 +449,32 @@ window.__ModuleLoader__.load({
 
       const busy = phase === 'running'
 
-      const progress = busy
-        ? h(
-            'div',
-            { style: styles.stickyBar },
-            h(
-              'div',
-              { style: styles.barHead },
-              h('span', null, `${t('running')} · ${pct}%`),
-              h('span', null, `${t('elapsed')} ${seconds}s`),
-            ),
-            h('div', { style: styles.track }, h('div', { style: { ...styles.fill, width: `${pct}%` } })),
-          )
-        : null
-
-      const document_ = fragment
-        ? h('div', {
-            className: 'er-doc',
-            style: styles.doc,
-            // Model HTML is sanitised above; the stylesheet is the skill's own.
-            dangerouslySetInnerHTML: { __html: sanitize(fragment) },
-          })
-        : null
-
       return h(
         'div',
         { style: styles.page },
         h(
           'div',
           { style: styles.inner },
-          css ? h('style', { key: 'css' }, css) : null,
+          // Faces live in the light DOM so the panel's own headings can use Jost;
+          // the document gets its styles from the shadow root below.
+          fonts ? h('style', { key: 'faces' }, fonts) : null,
+
           h('h1', { style: styles.title }, t('title')),
           h('p', { style: styles.subtitle }, t('subtitle')),
-          progress,
+
+          busy
+            ? h(
+                'div',
+                { style: { display: 'flex', flexDirection: 'column', gap: 0 } },
+                h(
+                  'div',
+                  { style: styles.barHead },
+                  h('span', null, `${t('running')} · ${pct}%`),
+                  h('span', null, `${t('elapsed')} ${seconds}s`),
+                ),
+                h('div', { style: styles.track }, h('div', { style: { ...styles.fill, width: `${pct}%` } })),
+              )
+            : null,
 
           phase === 'input'
             ? h(
@@ -466,8 +482,8 @@ window.__ModuleLoader__.load({
                 {
                   style: {
                     ...styles.zone,
-                    borderColor: dragging ? 'var(--dsw-alias-brand-primary)' : 'var(--dsw-alias-border-l2)',
-                    background: dragging ? 'var(--dsw-alias-bg-layer-2)' : 'var(--dsw-alias-bg-layer-1)',
+                    borderColor: dragging ? C.coral : '#d9c9b2',
+                    background: dragging ? '#faf5ea' : C.paper2,
                   },
                   onDragOver: (event) => {
                     event.preventDefault()
@@ -514,7 +530,7 @@ window.__ModuleLoader__.load({
               )
             : null,
 
-          document_,
+          fragment ? h('div', { ref: hostRef, style: styles.docHost }) : null,
 
           h(
             'div',
