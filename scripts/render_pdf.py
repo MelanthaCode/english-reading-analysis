@@ -37,6 +37,17 @@ PATH_NAMES = (
     "msedge.exe",
 )
 
+# Degraded-but-usable renderers, tried only when no Chromium-family browser is
+# found. They honour @page size but paginate differently from Chrome, so the
+# layout rules in references/layout-pdf.md are only approximately respected.
+FALLBACK_ENGINES = (
+    ("weasyprint", ("weasyprint", "weasyprint.exe")),
+    ("wkhtmltopdf", ("wkhtmltopdf", "wkhtmltopdf.exe")),
+)
+
+# Point at a specific engine without editing the skill, e.g. inside a container.
+ENV_BROWSER = "RENDER_PDF_BROWSER"
+
 # macOS application bundles, including per-user installs.
 MAC_BUNDLES = (
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -153,6 +164,58 @@ def find_chrome(explicit: str | None = None, platform: str | None = None) -> str
     return None
 
 
+def engine_kind(path: str) -> str:
+    """Guess the engine kind from an executable's file name."""
+    name = os.path.basename(path).lower()
+    if "weasyprint" in name:
+        return "weasyprint"
+    if "wkhtmltopdf" in name:
+        return "wkhtmltopdf"
+    return "chrome"
+
+
+def find_engine(
+    explicit: str | None = None,
+    platform: str | None = None,
+    env: Mapping[str, str] | None = None,
+    only: str = "auto",
+) -> dict | None:
+    """Locate a renderer.
+
+    Order: explicit path -> $RENDER_PDF_BROWSER -> Chromium-family browser ->
+    weasyprint -> wkhtmltopdf. Returns {"kind": ..., "path": ...} or None.
+    """
+    env = os.environ if env is None else env
+
+    requested = explicit or env.get(ENV_BROWSER)
+    if requested:
+        candidate = os.path.expanduser(requested.strip().strip('"'))
+        if not os.path.isfile(candidate):
+            candidate = shutil.which(candidate)
+        # An explicit choice that cannot be resolved must fail loudly. Silently
+        # using a different browser hides the mistake from whoever set it.
+        if not candidate:
+            return None
+        kind = engine_kind(candidate)
+        if only in ("auto", kind):
+            return {"kind": kind, "path": candidate}
+        return None
+
+    if only in ("auto", "chrome"):
+        chrome = find_chrome(platform=platform)
+        if chrome:
+            return {"kind": "chrome", "path": chrome}
+
+    for kind, names in FALLBACK_ENGINES:
+        if only not in ("auto", kind):
+            continue
+        for name in names:
+            found = shutil.which(name)
+            if found:
+                return {"kind": kind, "path": found}
+    return None
+
+
 def pdf_page_count(path: Path) -> int | None:
     pdfinfo = shutil.which("pdfinfo")
     if not pdfinfo:
@@ -218,6 +281,30 @@ def _setup_console() -> None:
             pass
 
 
+def run_fallback(engine: dict, html: Path, out: Path, timeout: int) -> subprocess.CompletedProcess:
+    """Run a non-Chromium renderer. Output quality is lower; see the docstring."""
+    if engine["kind"] == "weasyprint":
+        cmd = [engine["path"], str(html), str(out)]
+    else:  # wkhtmltopdf
+        cmd = [
+            engine["path"],
+            "--enable-local-file-access",
+            "--print-media-type",
+            str(html),
+            str(out),
+        ]
+    kwargs: dict = {
+        "capture_output": True,
+        "text": True,
+        "timeout": timeout,
+        "encoding": "utf-8",
+        "errors": "replace",
+    }
+    if os.name == "nt":
+        kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    return subprocess.run(cmd, **kwargs)
+
+
 def main(argv: list[str] | None = None) -> int:
     _setup_console()
     parser = argparse.ArgumentParser(description="Render HTML to A4 PDF via headless Chrome")
@@ -232,27 +319,47 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--check",
         action="store_true",
-        help="only report which browser was detected, then exit",
+        help="only report which renderers were detected, then exit",
+    )
+    parser.add_argument(
+        "--engine",
+        choices=("auto", "chrome", "weasyprint", "wkhtmltopdf"),
+        default="auto",
+        help="force a specific renderer (default: chrome, then fallbacks)",
     )
     args = parser.parse_args(argv)
 
     if args.check:
-        chrome = find_chrome(args.chrome)
+        engine = find_engine(args.chrome, only=args.engine)
         pdftoppm = shutil.which("pdftoppm")
         pdfinfo = shutil.which("pdfinfo")
-        print(f"platform:  {sys.platform}")
-        print(f"python:    {sys.version.split()[0]}")
-        print(f"browser:   {chrome or 'NOT FOUND'}")
-        print(f"pdftoppm:  {pdftoppm or 'MISSING (only needed to read scanned PDFs)'}")
-        print(f"pdfinfo:   {pdfinfo or 'MISSING (page count in the summary only)'}")
-        if chrome is None:
+        weasy = shutil.which("weasyprint") or shutil.which("weasyprint.exe")
+        wkhtml = shutil.which("wkhtmltopdf") or shutil.which("wkhtmltopdf.exe")
+        print(f"platform:    {sys.platform}")
+        print(f"python:      {sys.version.split()[0]}")
+        print(f"browser:     {find_chrome() or 'NOT FOUND'}")
+        print(f"weasyprint:  {weasy or 'MISSING (fallback engine)'}")
+        print(f"wkhtmltopdf: {wkhtml or 'MISSING (fallback engine)'}")
+        print(f"pdftoppm:    {pdftoppm or 'MISSING (only needed for scanned PDFs)'}")
+        print(f"pdfinfo:     {pdfinfo or 'MISSING (page count in the summary only)'}")
+        if engine is None:
             print(
-                "status:    PDF rendering will FAIL until a browser is found "
-                "(pass --chrome <path> if it is installed elsewhere)",
+                "status:      NO RENDERER — PDF is not possible here, "
+                "but the HTML output is still usable"
+            )
+            print(
+                "next:        references/platform-fallback.md tells the agent what to do",
                 file=sys.stderr,
             )
             return 3
-        print("status:    ready for PDF rendering")
+        print(f"engine:      {engine['kind']} -> {engine['path']}")
+        if engine["kind"] == "chrome":
+            print("status:      ready for PDF rendering")
+        else:
+            print(
+                "status:      ready, but DEGRADED — pagination differs from Chrome; "
+                "check the output before printing"
+            )
         return 0
 
     if not args.html or not args.pdf:
@@ -268,17 +375,38 @@ def main(argv: list[str] | None = None) -> int:
     if out.exists():
         out.unlink()
 
-    chrome = find_chrome(args.chrome)
-    if chrome is None:
-        print("error: no Chrome/Chromium/Edge found.", file=sys.stderr)
+    engine = find_engine(args.chrome, only=args.engine)
+    if engine is None:
+        requested = args.chrome or os.environ.get(ENV_BROWSER)
+        if requested:
+            print(
+                f"error: the renderer you specified does not exist: {requested}",
+                file=sys.stderr,
+            )
+            print(
+                "refusing to silently fall back to a different browser — "
+                "fix the path, or unset it to re-enable auto-detection",
+                file=sys.stderr,
+            )
+            return 3
+        print(
+            "error: no renderer found — no Chrome/Chromium/Edge, no weasyprint, "
+            "no wkhtmltopdf.",
+            file=sys.stderr,
+        )
         tried = chrome_candidates()[:6]
         if tried:
-            print("looked in:", file=sys.stderr)
+            print("browser paths tried:", file=sys.stderr)
             for candidate in tried:
                 print(f"  {candidate}", file=sys.stderr)
         print(
-            "hint: pass --chrome <path-to-executable>, e.g. "
-            r'--chrome "C:\Program Files\Google\Chrome\Application\chrome.exe"',
+            "hint: --chrome <path-to-executable> | --engine weasyprint | "
+            f"export {ENV_BROWSER}=<path>",
+            file=sys.stderr,
+        )
+        print(
+            "note: PDF is optional — the HTML output stays usable and can be "
+            "printed manually. See references/platform-fallback.md.",
             file=sys.stderr,
         )
         return 3
@@ -286,20 +414,29 @@ def main(argv: list[str] | None = None) -> int:
     profile = Path(tempfile.mkdtemp(prefix="chrome-headless-"))
     proc: subprocess.CompletedProcess | None = None
     try:
-        # Chrome 112+ takes --headless=new; older builds only know --headless.
-        for headless_flag in ("--headless=new", "--headless"):
+        if engine["kind"] == "chrome":
+            # Chrome 112+ takes --headless=new; older builds only know --headless.
+            for headless_flag in ("--headless=new", "--headless"):
+                try:
+                    proc = run_chrome(
+                        engine["path"], headless_flag, profile, out, html.as_uri(), args.timeout
+                    )
+                except subprocess.TimeoutExpired:
+                    print(f"error: chrome timed out after {args.timeout}s", file=sys.stderr)
+                    return 4
+                if out.is_file() and out.stat().st_size > 0:
+                    break
+        else:
             try:
-                proc = run_chrome(chrome, headless_flag, profile, out, html.as_uri(), args.timeout)
+                proc = run_fallback(engine, html, out, args.timeout)
             except subprocess.TimeoutExpired:
-                print(f"error: chrome timed out after {args.timeout}s", file=sys.stderr)
+                print(f"error: {engine['kind']} timed out after {args.timeout}s", file=sys.stderr)
                 return 4
-            if out.is_file() and out.stat().st_size > 0:
-                break
     finally:
         shutil.rmtree(profile, ignore_errors=True)
 
     if not out.is_file() or out.stat().st_size == 0:
-        print(f"error: no PDF produced by {chrome}", file=sys.stderr)
+        print(f"error: no PDF produced by {engine['path']}", file=sys.stderr)
         if proc is not None and proc.stderr:
             print(proc.stderr.strip()[-2000:], file=sys.stderr)
         return 5
@@ -307,7 +444,7 @@ def main(argv: list[str] | None = None) -> int:
     size_kb = out.stat().st_size / 1024
     pages = pdf_page_count(out)
     suffix = f", {pages} pages" if pages else ""
-    print(f"wrote {out} ({size_kb:.0f} KB{suffix})")
+    print(f"wrote {out} ({size_kb:.0f} KB{suffix}) via {engine['kind']}")
     return 0
 
 

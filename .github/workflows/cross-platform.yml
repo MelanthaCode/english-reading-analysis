@@ -39,6 +39,26 @@ jobs:
         shell: bash
         run: python scripts/render_pdf.py --check
 
+      - name: Engine dispatch unit tests
+        shell: bash
+        run: python tests/test_engines.py
+
+      - name: Degraded fallback engine still produces a PDF (linux only)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/fakebin"
+          printf '#!/bin/sh\nprintf "%%%%PDF-1.4\\n%%%% fake\\n%%%%%%EOF\\n" > "$2"\n' > "$RUNNER_TEMP/fakebin/weasyprint"
+          chmod +x "$RUNNER_TEMP/fakebin/weasyprint"
+          PATH="$RUNNER_TEMP/fakebin:$PATH" python scripts/render_pdf.py tests/smoke.html degraded.pdf --engine weasyprint
+          python - <<'PY'
+          import pathlib, sys
+          data = pathlib.Path("degraded.pdf").read_bytes()
+          if not data.startswith(b"%PDF"):
+              sys.exit("fallback engine produced something that is not a PDF")
+          print("ok: fallback engine path exercised")
+          PY
+
       - name: Render the smoke page to A4 PDF
         shell: bash
         run: python scripts/render_pdf.py tests/smoke.html out.pdf

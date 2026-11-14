@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.3 — 2026-11-14
+
+**Graceful degradation beyond the three supported systems.** Windows, macOS and Linux stay the contract, but unsupported or locked-down environments (WSL, Alpine, FreeBSD, Termux, Safari-only macOS, corporate machines) no longer dead-end.
+
+- Renderer chain: Chromium-family browser → `weasyprint` → `wkhtmltopdf`, with `--engine` to force one.
+- `RENDER_PDF_BROWSER` environment variable as a container/CI escape hatch, alongside `--chrome`.
+- An explicitly requested renderer that does not exist now fails with exit 3 instead of silently falling back to a different browser.
+- `--check` also reports `weasyprint`, `wkhtmltopdf` and the chosen `engine`, with three statuses: `ready for PDF rendering`, `ready, but DEGRADED`, `NO RENDERER`.
+- Documented exit codes (2 input missing, 3 no engine, 4 timeout, 5 no output) so an agent can branch instead of parsing prose.
+- New `references/platform-fallback.md`: a four-tier decision chain addressed to the agent, with per-environment notes (WSL path translation, Alpine packages, ARM, Termux, locked machines) and reply templates.
+- `SKILL.md`: PDF is explicitly *not* a precondition for delivery; HTML output is a valid final state.
+- New `tests/test_engines.py`, run on all three CI runners: covers engine-kind detection, env-var override, forced-engine selection, the silent-fallback regression, and the v1.0.0 Windows path regression.
+- CI also exercises the degraded path on Linux with a stub engine.
+
 ## 1.0.2 — 2026-11-14
 
 **Windows / macOS / Linux are now a hard, tested contract.**

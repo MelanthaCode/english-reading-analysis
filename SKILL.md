@@ -61,6 +61,9 @@ description: 把英语阅读材料转成中文：逐篇给出原文与中文翻�
 - A4，页边距约 13mm；中文宋体/PingFang，英文 Georgia；正文 10–10.5pt。
 - 用 **HTML + headless Chrome** 打印 PDF（不用 Word）：高亮、下划线、卡片分页都更好控制。
 - 渲染：`python3 scripts/render_pdf.py 输入.html 输出.pdf`。
+- 先跑 `python3 scripts/render_pdf.py --check` 确认本机有可用引擎；Windows / macOS / Linux 三个系统均受支持且有 CI 验证。
+- **PDF 不是交付的前置条件。** 任何环境下都先把 HTML 做对；只有引擎可用时才转 PDF。引擎找不到时不要反复重试，按 `references/platform-fallback.md` 的决策链逐级降级，最终交付 HTML 并告诉用户怎么打印。
+- 用了非 Chrome 引擎（weasyprint / wkhtmltopdf）时，分页可能与规范有差异，必须在回复里说明。
 - 文档元信息只写**文章主题 + 用途**：不要学校名、考试名称、学年学期、年级班级、原卷页码、考场须知。
 - CSS 骨架、分页配方、排错与验收见 `references/layout-pdf.md`。
 
@@ -78,5 +81,6 @@ description: 把英语阅读材料转成中文：逐篇给出原文与中文翻�
 - `references/sentence-analysis.md` — 分析顺序、从句分类、展示规则、范例
 - `references/paper-workflow.md` — 题块字段、题型解法、干扰项套路、错因分类
 - `references/layout-pdf.md` — 版式规格、CSS、分页、Chrome 渲染与排错
+- `references/platform-fallback.md` — 引擎缺失时的四级降级决策链（WSL、Alpine、FreeBSD、Termux、锁定机器等）
 - `assets/template.html` — 可直接套用的 HTML 模板
 - `scripts/render_pdf.py` — HTML 转 A4 PDF

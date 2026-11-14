@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-8A2BE2)](#兼容性)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-d97757)](#安装)
-![Version](https://img.shields.io/badge/version-1.0.2-green)
+![Version](https://img.shields.io/badge/version-1.0.3-green)
 [![cross-platform](https://github.com/MelanthaCode/english-reading-analysis/actions/workflows/cross-platform.yml/badge.svg)](https://github.com/MelanthaCode/english-reading-analysis/actions/workflows/cross-platform.yml)
 
 > **把英语试卷丢给 AI，输出可打印的中文解析。**
@@ -64,15 +64,35 @@ git clone https://github.com/MelanthaCode/english-reading-analysis.git `
 自检通过时输出类似：
 
 ```
-platform:  win32
-python:    3.11.9
-browser:   C:\Program Files\Google\Chrome\Application\chrome.exe
-pdftoppm:  C:\texlive\2024\bin\windows\pdftoppm.exe
-pdfinfo:   C:\texlive\2024\bin\windows\pdfinfo.exe
-status:    ready for PDF rendering
+platform:    win32
+python:      3.11.9
+browser:     C:\Program Files\Google\Chrome\Application\chrome.exe
+weasyprint:  MISSING (fallback engine)
+wkhtmltopdf: MISSING (fallback engine)
+pdftoppm:    C:\texlive\2024\bin\windows\pdftoppm.exe
+pdfinfo:     C:\texlive\2024\bin\windows\pdfinfo.exe
+engine:      chrome -> C:\Program Files\Google\Chrome\Application\chrome.exe
+status:      ready for PDF rendering
 ```
 
-`status` 必须是 `ready for PDF rendering`。若 `browser` 是 `NOT FOUND`，用 `--chrome "路径"` 指过去即可（[常见报错见 references/layout-pdf.md](references/layout-pdf.md#5-已知坑)）。
+看 `status` 一行即可：
+
+- `ready for PDF rendering` → 引擎是 Chrome 系，版式完全符合规范
+- `ready, but DEGRADED` → 只有 weasyprint / wkhtmltopdf，能出 PDF 但分页会有差异
+- `NO RENDERER` → 本机一个引擎都没有
+
+## 超出三个系统怎么办
+
+WSL、Alpine、FreeBSD、Termux、只有 Safari 的 Mac、锁权限的公司电脑——这些环境不做保证，但**不会让任务卡死**。脚本内置四级降级：
+
+| 层级 | 手段 | 结果 |
+|---|---|---|
+| 1 | `--chrome "路径"` 或 `RENDER_PDF_BROWSER` 环境变量 | 用已有浏览器，质量不变 |
+| 2 | 装一个：`apk add chromium`、`pip install weasyprint`、`npx playwright install chromium` | 质量不变或接近 |
+| 3 | `--engine weasyprint` / `--engine wkhtmltopdf` | 能出 PDF，分页有差异 |
+| 4 | 交付 HTML | 浏览器里 `Ctrl+P` 另存为 PDF，页面已按 A4 排版 |
+
+关键是第 4 层：**PDF 是包装，不是内容。** 渲染完全不可用时任务依然完成——Agent 按 [references/platform-fallback.md](references/platform-fallback.md) 的决策链执行，并在回复里说明走的是哪一层。脚本退出码也是机读的：`3` 表示无引擎、`4` 超时、`5` 未产出，方便 Agent 分支处理。
 
 ## 兼容性
 
@@ -177,14 +197,16 @@ english-reading-analysis/
 ├── references/
 │   ├── sentence-analysis.md       # 长难句：分析顺序、从句分类、展示规则、范例
 │   ├── paper-workflow.md          # 试卷：题块字段、题型解法、干扰项、错因分类
-│   └── layout-pdf.md              # 版式：CSS、分页、渲染命令、排错
+│   ├── layout-pdf.md              # 版式：CSS、分页、渲染命令、排错
+│   └── platform-fallback.md       # 引擎缺失时的四级降级决策链
 ├── assets/
 │   ├── template.html              # 可直接套用的 HTML 模板
 │   └── screenshots/               # README 用效果图
 ├── scripts/
 │   └── render_pdf.py              # HTML → A4 PDF（macOS / Linux / Windows）
 ├── tests/
-│   └── smoke.html                 # 跨平台冒烟页，CI 在三系统上渲染它
+│   ├── smoke.html                 # 跨平台冒烟页，CI 在三系统上渲染它
+│   └── test_engines.py            # 引擎探测单测（CI 三系统都跑）
 └── .github/workflows/
     └── cross-platform.yml         # Windows / macOS / Linux 三系统 CI
 ```
