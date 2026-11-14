@@ -24,9 +24,16 @@
     --indigo:#3a4178; --orange:#ff923e; --green:#98cb5f; --blue:#51aade;
     --radius:8px;
     --shadow:0 1px 2px rgba(119,67,24,.06), 0 6px 18px rgba(119,67,24,.07);
-    --font-head:'Jost','PingFang SC',system-ui,sans-serif;
-    --font-body:'Zilla Slab',Georgia,'Songti SC','Noto Serif CJK SC',serif;
-    --font-cn:'Songti SC','Noto Serif CJK SC',serif;
+    /* 字体策略：
+       1) 英文 Jost / Zilla Slab 以 base64 内嵌，随插件分发，无需安装；
+       2) 中文不内嵌（体积大），按 macOS → Windows → Linux 的系统字体顺序回落；
+       3) 任一层缺失都不会影响可用性，只是字形略有差别。 */
+    --font-head:'Jost','PingFang SC','Hiragino Sans GB','Microsoft YaHei',
+                'Noto Sans CJK SC','WenQuanYi Micro Hei',system-ui,sans-serif;
+    --font-body:'Zilla Slab',Georgia,'Times New Roman','Songti SC',SimSun,
+                'Noto Serif CJK SC','Source Han Serif SC',serif;
+    --font-cn:'Songti SC',SimSun,'Noto Serif CJK SC','Source Han Serif SC',
+               'PingFang SC','Microsoft YaHei',serif;
   }
   *{box-sizing:border-box} html,body{margin:0;padding:0}
   body{font-family:var(--font-body); color:var(--ink); font-size:10.4pt; line-height:1.62;
