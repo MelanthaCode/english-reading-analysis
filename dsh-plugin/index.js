@@ -22,7 +22,13 @@ const skillDir = join(packageDir, 'skills', 'english-reading-analysis')
 const ROUTE_PREFIX = '/x-english-reading'
 const PYTHON = process.platform === 'win32' ? 'python' : 'python3'
 
-export const inject = ['skills']
+// `optional` is what makes ctx.get('webServer') resolve: Cordis only exposes a
+// service to a context that declared it, and an undeclared get() returns
+// undefined no matter how healthy the service is.
+export const inject = {
+  required: ['skills'],
+  optional: ['webServer', 'llm', 'agentDefaultModel'],
+}
 
 function parseFrontmatter(raw) {
   const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(raw)
@@ -112,14 +118,47 @@ export function apply(ctx) {
     })
   })
 
-  const webServer = typeof ctx.get === 'function' ? ctx.get('webServer') : undefined
+  const getService = (name) => {
+    try {
+      return typeof ctx.get === 'function' ? ctx.get(name) : undefined
+    } catch {
+      return undefined
+    }
+  }
+
+  const webServer = getService('webServer')
   if (!webServer) {
     console.warn('[english-reading] webServer unavailable: panel routes are not served')
     return
   }
 
-  const llm = ctx.get('llm')
-  const defaultModel = ctx.get('agentDefaultModel')
+  // Resolved per request so a late-mounted service or a profile swap is handled.
+  const llmService = () => getService('llm')
+  const modelService = () => getService('agentDefaultModel')
+
+  ctx.effect(() =>
+    webServer.register({
+      kind: 'exact',
+      path: `${ROUTE_PREFIX}/health`,
+      handler: (_req, res) => {
+        const model = modelService()
+        let selection = null
+        try {
+          selection = model ? resolveModel(model.currentSelection()) : null
+        } catch (error) {
+          selection = { error: String(error?.message || error) }
+        }
+        sendJson(res, 200, {
+          ok: true,
+          plugin: 'dsh-skill-english-reading',
+          skillDir,
+          hasLlm: Boolean(llmService()),
+          hasModel: Boolean(model),
+          model: selection,
+        })
+      },
+    }),
+  )
 
   ctx.effect(() =>
     webServer.register({
@@ -137,6 +176,8 @@ export function apply(ctx) {
 
         const text = String(payload?.text || '').trim()
         if (!text) return sendJson(res, 400, { error: 'empty text' })
+        const llm = llmService()
+        const defaultModel = modelService()
         if (!llm || !defaultModel) return sendJson(res, 503, { error: 'model services unavailable' })
 
         let selection
