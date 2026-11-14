@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-8A2BE2)](#兼容性)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-d97757)](#安装)
-![Version](https://img.shields.io/badge/version-1.0.0-green)
+![Version](https://img.shields.io/badge/version-1.0.1-green)
 
 > **把英语试卷丢给 AI，输出可打印的中文解析。**
 
@@ -100,9 +100,22 @@ git clone https://github.com/MelanthaCode/english-reading-analysis.git \
 
 | 用途 | 需要 |
 |---|---|
-| 渲染 PDF | Google Chrome / Chromium / Edge（任一） |
+| 渲染 PDF | Google Chrome / Chromium / Edge（任一，装在默认位置即可） |
 | 读取扫描件 | `pdftoppm`（poppler） |
 | 运行脚本 | Python 3.9+ |
+
+**Windows 用户**：Chrome 和 Edge 默认不在 `PATH` 里，脚本会自己到注册表 `App Paths` 和 `Program Files`、`Program Files (x86)`、`%LOCALAPPDATA%` 下找。装完先自检：
+
+```bash
+python3 scripts/render_pdf.py --check
+# browser: C:\Program Files\Google\Chrome\Application\chrome.exe
+```
+
+如果装在非默认位置，显式指定即可：
+
+```bash
+python3 scripts/render_pdf.py 输入.html 输出.pdf --chrome "D:\你的路径\chrome.exe"
+```
 
 ```bash
 brew install poppler            # macOS 读扫描件用

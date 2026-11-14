@@ -42,13 +42,15 @@ The agent then follows `SKILL.md` section by section. Output language is Chinese
 
 1. `SKILL.md` exists at the repository root and its frontmatter has both `name` and `description` — that is what most skill loaders require.
 2. `references/` and `assets/` are present and referenced with relative paths from `SKILL.md`.
-3. `python3 scripts/render_pdf.py --help` runs without importing third-party packages (standard library only).
-4. For Claude Code specifically: `claude plugin validate .` prints `✔ Validation passed`.
+3. `python3 scripts/render_pdf.py --check` prints the detected browser path and exits 0. It is platform-aware: on Windows it looks in the registry "App Paths" keys and the standard `Program Files`, `Program Files (x86)` and `%LOCALAPPDATA%` install roots, because Chrome and Edge are normally **not** on `PATH` there.
+4. `python3 scripts/render_pdf.py --help` runs on the standard library alone — no third-party imports.
+5. For Claude Code specifically: `claude plugin validate .` prints `✔ Validation passed`.
 
 ## Constraints when modifying this repository
 
 - Keep `SKILL.md` frontmatter valid YAML with `name` and `description`. The description is the trigger text an agent matches against — keep the use-cases in it explicit.
 - Do not add network calls, telemetry, or binary dependencies. The skill is deliberately offline: `scripts/render_pdf.py` only shells out to a local Chrome.
+- Keep PDF rendering working on **all three platforms**. Windows has no Chrome on `PATH` by default, so browser detection must keep covering the registry `App Paths` keys and the standard install roots, and `--chrome` must stay available as an escape hatch.
 - Do not add a source watermark or attribution footer to generated PDFs. The document is for students; identity noise is a design non-goal.
 - Keep relative paths intact; the skill may be installed into any directory name chosen by the user.
 - `references/` files are loaded lazily. Keep each one focused on a single concern rather than merging them.

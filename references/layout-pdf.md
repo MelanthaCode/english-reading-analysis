@@ -74,6 +74,20 @@ h2.part{break-before:page;}
 python3 scripts/render_pdf.py 输入.html 输出.pdf
 ```
 
+先自检浏览器是否被识别（macOS / Linux / Windows 通用）：
+
+```bash
+python3 scripts/render_pdf.py --check
+```
+
+输出形如 `browser: C:\Program Files\Google\Chrome\Application\chrome.exe` 即可渲染；若为 `NOT FOUND`，用 `--chrome` 显式指定：
+
+```bash
+python3 scripts/render_pdf.py 输入.html 输出.pdf --chrome "C:\Program Files\Google\Chrome\Application\chrome.exe"
+```
+
+脚本会依次尝试：Windows 注册表 App Paths → `Program Files` / `Program Files (x86)` / `%LOCALAPPDATA%` 下的 Chrome、Edge、Chromium、Brave → PATH 里的 `chrome.exe` / `msedge.exe`。**Chrome 装在默认位置时通常不在 PATH，靠的就是前两步。**
+
 等价手动命令（macOS）：
 
 ```bash
@@ -85,11 +99,25 @@ mkdir -p /tmp/chrome-headless
   --print-to-pdf=输出.pdf "file:///绝对路径/输入.html"
 ```
 
+等价手动命令（Windows，PowerShell）：
+
+```powershell
+New-Item -ItemType Directory -Force "$env:TEMP\chrome-headless" | Out-Null
+& "C:\Program Files\Google\Chrome\Application\chrome.exe" `
+  --headless=new --disable-gpu --no-sandbox `
+  --user-data-dir="$env:TEMP\chrome-headless" `
+  --no-pdf-header-footer --virtual-time-budget=8000 `
+  --print-to-pdf="输出.pdf" "file:///C:/绝对路径/输入.html"
+```
+
+Windows 的 `file://` URI 必须是 `file:///C:/...` 形式（三个斜杠 + 正斜杠），中文与空格会被百分号编码；直接传 `C:\...` 给 Chrome 会打不开。
+
 ## 5. 已知坑
 
 | 现象 | 原因 | 处理 |
 |---|---|---|
 | `Failed to create a unique user data directory` | 无头模式没有可用用户目录 | 显式传 `--user-data-dir=/tmp/chrome-headless` |
+| `no Chrome/Chromium/Edge found`（Windows 最常见） | Chrome/Edge 默认安装位置不在 PATH | 脚本已内置 Windows 路径探测；仍失败则 `--chrome "C:\...\chrome.exe"` |
 | 表格内容超出右边框被裁 | auto 布局下 `nowrap` 片段把表撑宽 | `table-layout: fixed` + `td` 右侧留 padding |
 | 标题孤零零留在页底 | 缺少 break-after | `break-after: avoid` |
 | 首页只剩标题/图例 | 第一篇也加了 break-before | 只给第二篇起加 |

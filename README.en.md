@@ -69,9 +69,17 @@ Rendering to A4 PDF is done locally with headless Chrome; card and question bloc
 
 | Purpose | Needs |
 |---|---|
-| A4 PDF rendering | Google Chrome / Chromium / Edge |
+| A4 PDF rendering | Google Chrome / Chromium / Edge, installed in its default location |
 | Scanning images from PDFs | `pdftoppm` (poppler) |
 | Running the helper script | Python 3.9+ |
+
+**Windows:** Chrome and Edge are not on `PATH`, so the script resolves them from the registry `App Paths` keys and the standard `Program Files`, `Program Files (x86)` and `%LOCALAPPDATA%` install roots. Check it with:
+
+```bash
+python3 scripts/render_pdf.py --check
+```
+
+If your browser lives somewhere unusual, pass it explicitly with `--chrome "D:\path\to\chrome.exe"`.
 
 ## Repository layout
 
