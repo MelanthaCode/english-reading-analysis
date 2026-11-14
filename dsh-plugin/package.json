@@ -1,0 +1,42 @@
+{
+  "name": "dsh-skill-english-reading",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "English reading analysis as a DSH plugin: turns English passages and exam papers into Chinese analysis with a print-ready A4 PDF. Registers the skill into the Harness skill catalog on install.",
+  "exports": {
+    ".": "./index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "skills"
+  ],
+  "scripts": {
+    "sync": "node sync-skill.mjs",
+    "prepack": "node sync-skill.mjs"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "skill",
+    "english",
+    "translation",
+    "reading-comprehension",
+    "exam-paper",
+    "education",
+    "pdf"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "license": "MIT",
+  "author": "Melantha"
+}

@@ -1,0 +1,6 @@
+# 这个包把 english-reading-analysis 技能注册进 DSH 的技能目录。
+# row id 必须全局唯一，避免和 dsh-base 已有行冲突。
+- insert:
+    - id: skill-english-reading
+      name: 'dsh-skill-english-reading'
+      config: {}

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "English Reading Analysis",
+    "description": "Turns English passages and exam papers into a Chinese study document: paragraph translation, bilingual questions with answers, error analysis, long-sentence breakdown, and a print-ready A4 PDF. Registers itself as a skill on install."
+  }
+}
