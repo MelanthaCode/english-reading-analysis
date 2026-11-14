@@ -16,12 +16,11 @@ iVBORw0KGgoAAAANSUhEUgAAACoAAAAuCAIAAADRMBwaAAAAAXNSR0IArs4c6QAAAFBlWElmTU0AKgAA
 <path d="M19.8117 3.30435L36.7184 51.4442" fill="none" opacity="1" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="4.5"/>
 <path d="M19.8117 3.30435L36.7184 51.4442" fill="none" opacity="1" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="4.5"/>
 </g>
-<g opacity="1">
-<path d="M77.2006 39.3752L40.3121 39.3752" fill="none" opacity="1" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="4.5"/>
-<path d="M49.2729 39.7299L76.3345 76.1721" fill="none" opacity="1" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="4.5"/>
-<path d="M69.0112 39.3578L41.5779 76.3006" fill="none" opacity="1" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="4.5"/>
-<path d="M57.1869 26.5373L60.2555 34.6069" fill="none" opacity="1" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="4.5"/>
-</g>
+<path d="M76.5756 39.3752L39.687 39.3752" fill="none" opacity="1" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="4.5"/>
+<path d="M73.3386 39.6943L40.4074 76.2681" fill="none" opacity="1" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="4.5"/>
+<path d="M73.3386 39.6943L40.4074 76.2681" fill="none" opacity="1" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="4.5"/>
+<path d="M43.3063 39.8324L76.2375 76.4062" fill="none" opacity="1" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="4.5"/>
+<path d="M56.7278 26.2265L59.1961 32.847" fill="none" opacity="1" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="4.5"/>
 <use opacity="0" transform="matrix(2.93701 0 0 2.85448 -24.2679 -22.7457)" xlink:href="#Image"/>
 </g>
 </svg>
