@@ -117,6 +117,8 @@ python3 scripts/render_pdf.py --check
 python3 scripts/render_pdf.py 输入.html 输出.pdf --chrome "D:\你的路径\chrome.exe"
 ```
 
+扫描件依赖 `pdftoppm`：macOS 用 `brew install poppler`，Windows 可装 TeXLive/MiKTeX（自带）、或 `scoop install poppler`。它缺失只影响"扫描件转图"这一步，文字版材料不受影响。
+
 ```bash
 brew install poppler            # macOS 读扫描件用
 python3 scripts/render_pdf.py 输入.html 输出.pdf
@@ -126,7 +128,7 @@ python3 scripts/render_pdf.py 输入.html 输出.pdf
 
 - **不联网**：`scripts/render_pdf.py` 只调用本地 Chrome，无任何 HTTP 请求、无遥测、不上传任何内容。
 - **只读你的材料**：文章、试卷、照片在你的机器上读取与渲染，产物写在本地。
-- **可审计**：全部逻辑都在本仓库的 Markdown 与一个约 120 行的 Python 脚本里，没有构建步骤、没有依赖包、没有二进制。
+- **可审计**：全部逻辑都在本仓库的 Markdown 与一个约 300 行的纯标准库 Python 脚本里，没有构建步骤、没有依赖包、没有二进制。
 - **MIT 许可**：可自由修改、二次分发。
 
 ## 目录
@@ -134,6 +136,8 @@ python3 scripts/render_pdf.py 输入.html 输出.pdf
 ```
 english-reading-analysis/
 ├── SKILL.md                       # 入口：结构、流程、验收清单
+├── AGENTS.md                      # 给 AI 读的自述：能力、安装、验证、改动红线
+├── CHANGELOG.md                   # 版本变更
 ├── .claude-plugin/
 │   ├── plugin.json                # Claude Code 插件清单
 │   └── marketplace.json           # 插件市场条目
@@ -145,7 +149,7 @@ english-reading-analysis/
 │   ├── template.html              # 可直接套用的 HTML 模板
 │   └── screenshots/               # README 用效果图
 └── scripts/
-    └── render_pdf.py              # HTML → A4 PDF
+    └── render_pdf.py              # HTML → A4 PDF（macOS / Linux / Windows）
 ```
 
 ## 设计取舍
