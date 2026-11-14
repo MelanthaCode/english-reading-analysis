@@ -201,53 +201,35 @@ window.__ModuleLoader__.load({
       docHost: { display: 'block', marginTop: 4 },
     }
 
+    // Lucide `languages` (ISC), inlined: the client module table only provides
+    // `react`, so a package dependency would have to be bundled. These paths are
+    // the ones the shell's own rail icons use, so the weight matches.
+    const LANGUAGES_PATHS = [
+      'm5 8 6 6',
+      'm4 14 6-6 2-3',
+      'M2 5h12',
+      'M7 2h1',
+      'm22 22-5-10-5 10',
+      'M14 18h6',
+    ]
+
     function SidebarIcon(props) {
       const size = (props && props.size) || 20
-      const clipId = 'era-sidebar-clip'
       return h(
         'svg',
         {
           width: size,
           height: size,
-          viewBox: '0 0 32 32',
+          viewBox: '0 0 24 24',
           fill: 'none',
+          stroke: 'currentColor',
+          strokeWidth: 2,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
           'aria-hidden': true,
           style: { display: 'block' },
         },
-        h('defs', null, h('clipPath', { id: clipId }, h('rect', { width: 32, height: 32, rx: 7 }))),
-        h(
-          'g',
-          { clipPath: `url(#${clipId})` },
-          // Two colours only: paper and ink. The diagonal inverts them.
-          h('rect', { width: 32, height: 32, fill: '#f4efe5' }),
-          h('path', { d: 'M0 32 32 0v32z', fill: '#2f2620' }),
-          h(
-            'text',
-            {
-              x: 9.4,
-              y: 14.6,
-              fontSize: 11,
-              fontWeight: 700,
-              fontFamily: 'Georgia, "Times New Roman", serif',
-              fill: '#2f2620',
-              textAnchor: 'middle',
-            },
-            'A',
-          ),
-          h(
-            'text',
-            {
-              x: 22.4,
-              y: 27,
-              fontSize: 9.4,
-              fontWeight: 600,
-              fontFamily: '"Songti SC", "SimSun", "Noto Serif CJK SC", serif',
-              fill: '#f4efe5',
-              textAnchor: 'middle',
-            },
-            '文',
-          ),
-        ),
+        LANGUAGES_PATHS.map((d, i) => h('path', { key: i, d })),
       )
     }
 

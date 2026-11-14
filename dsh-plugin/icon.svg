@@ -1,21 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="English to Chinese reading analysis">
-  <defs>
-    <clipPath id="tile"><rect width="128" height="128" rx="26"/></clipPath>
-  </defs>
-
-  <g clip-path="url(#tile)">
-    <!-- 纸色底：左上 -->
-    <rect width="128" height="128" fill="#f4efe5"/>
-
-    <!-- 墨色：右下斜切 -->
-    <path d="M0 128 128 0v128z" fill="#2f2620"/>
-
-    <!-- 左上反白区：拉丁 -->
-    <text x="36" y="58" font-family="Georgia, 'Times New Roman', serif" font-size="40" font-weight="700"
-          fill="#2f2620" text-anchor="middle">A</text>
-
-    <!-- 右下墨区：中文（反白） -->
-    <text x="90" y="104" font-family="'Songti SC', 'SimSun', 'Noto Serif CJK SC', serif" font-size="36"
-          font-weight="600" fill="#f4efe5" text-anchor="middle">文</text>
+  <rect width="128" height="128" rx="26" fill="#f4efe5"/>
+  <g transform="translate(30 30) scale(2.83)" fill="none" stroke="#2f2620" stroke-width="1.55"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="m5 8 6 6"/>
+    <path d="m4 14 6-6 2-3"/>
+    <path d="M2 5h12"/>
+    <path d="M7 2h1"/>
+    <path d="m22 22-5-10-5 10"/>
+    <path d="M14 18h6"/>
   </g>
 </svg>
