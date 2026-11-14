@@ -201,10 +201,11 @@ window.__ModuleLoader__.load({
       docHost: { display: 'block', marginTop: 4 },
     }
 
-    // 20-unit grid. A spans y 0–14, 文 spans y 6–20 (dropped by 6 and tilted 8°),
-    // so the two interlock horizontally without touching. Stroke 1 in a 20 box.
-    const GLYPH_A = ['M5.6 0.8 1.6 14', 'M5.6 0.8 9.6 14', 'M3.1 9.8h5']
-    const GLYPH_WEN = ['M14.4 6.6 15.2 8.8', 'M10.3 10.9h9.5', 'M10.7 12.9 16.3 19.6', 'M18.5 12.9 12.6 19.6']
+    // 20-unit grid, set as type rather than drawn as strokes: a regular sans A
+    // on the left and 文 on the right, staggered down and in, so the pair sits on
+    // the diagonal without touching. System faces only — nothing to install.
+    const FONT_A = "'Helvetica Neue', Arial, 'PingFang SC', sans-serif"
+    const FONT_WEN = "'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif"
 
     function SidebarIcon(props) {
       const size = (props && props.size) || 20
@@ -214,19 +215,33 @@ window.__ModuleLoader__.load({
           width: size,
           height: size,
           viewBox: '0 0 20 20',
-          fill: 'none',
-          stroke: 'currentColor',
-          strokeWidth: 1,
-          strokeLinecap: 'round',
-          strokeLinejoin: 'round',
+          fill: 'currentColor',
           'aria-hidden': true,
           style: { display: 'block' },
         },
-        GLYPH_A.map((d, i) => h('path', { key: `a${i}`, d })),
         h(
-          'g',
-          { transform: 'rotate(-8 15 12.8)' },
-          GLYPH_WEN.map((d, i) => h('path', { key: `w${i}`, d })),
+          'text',
+          {
+            x: 5.2,
+            y: 12.6,
+            textAnchor: 'middle',
+            fontFamily: FONT_A,
+            fontSize: 11,
+            fontWeight: 500,
+          },
+          'A',
+        ),
+        h(
+          'text',
+          {
+            x: 15.2,
+            y: 19.2,
+            textAnchor: 'middle',
+            fontFamily: FONT_WEN,
+            fontSize: 9.6,
+            fontWeight: 500,
+          },
+          '文',
         ),
       )
     }
