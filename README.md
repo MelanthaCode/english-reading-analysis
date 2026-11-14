@@ -18,22 +18,19 @@
 
 ## 安装
 
-一行命令，自动装到当前项目，并同步到所有支持的 Agent：
+同一个仓库同时是三种形态，按你用的工具选一个：
+
+| 你的工具 | 安装方式 |
+|---|---|
+| **DeepSeek Harness** | 插件市场搜索「英语阅读分析」，或 `dsh plugin add dsh-skill-english-reading` |
+| **Claude Code** | `claude plugin marketplace add MelanthaCode/english-reading-analysis` → `claude plugin install english-reading-analysis@melantha-skills` |
+| **Codex / Cursor / Copilot / Cline / OpenCode / Amp / Windsurf / Gemini CLI 等 20+** | `npx skills add MelanthaCode/english-reading-analysis` |
+
+`npx skills add` 是覆盖面最广的一条：它把技能装到 `.agents/skills/english-reading-analysis/`，再为各工具建软链，一次覆盖 20 多个 Agent。
+
+手动安装（任意工具）：
 
 ```bash
-npx skills add MelanthaCode/english-reading-analysis
-```
-
-装完会在 `.agents/skills/english-reading-analysis/` 落地一份通用副本，并为 Claude Code 建好软链——**Codex、GitHub Copilot、OpenCode、Amp、Cline 等 20 个工具读同一个目录**，不需要逐个平台配置。
-
-其他安装方式：
-
-```bash
-# Claude Code 插件市场
-claude plugin marketplace add MelanthaCode/english-reading-analysis
-claude plugin install english-reading-analysis@melantha-skills
-
-# 手动放置（目录名即技能名）
 git clone https://github.com/MelanthaCode/english-reading-analysis.git \
   ~/.claude/skills/english-reading-analysis      # Claude Code
 # 或
@@ -42,14 +39,20 @@ git clone https://github.com/MelanthaCode/english-reading-analysis.git \
   ~/.dsh/skills/english-reading-analysis         # DeepSeek Harness
 ```
 
-Windows 上手动放置的写法（PowerShell）：
+Windows 上的写法（PowerShell）：
 
 ```powershell
 git clone https://github.com/MelanthaCode/english-reading-analysis.git `
   "$env:USERPROFILE\.claude\skills\english-reading-analysis"
 ```
 
-三个系统上 `npx skills add` 行为一致，优先用它，可以省掉手写路径。
+### 三种形态的关系
+
+- **技能**（`SKILL.md`）：内容本体，所有 Agent 通用
+- **DSH 插件**（`dsh-plugin/`）：把技能注册进 Harness 技能目录，并在侧栏提供面板
+- **Claude Code 插件**（`.claude-plugin/`）：Claude Code 的插件市场入口
+
+三者共用同一份 `SKILL.md` 与同一套打印样式，改一处三处同步。
 
 ## 支持平台
 
@@ -236,6 +239,10 @@ npx skills add MelanthaCode/english-reading-analysis
 ## 图标
 
 侧栏与市场图标使用 [Lucide](https://lucide.dev) 的 `languages` 字形（ISC 许可），以路径内联方式实现，不引入运行时依赖。
+
+## 作者
+
+Melantha · [github.com/MelanthaCode](https://github.com/MelanthaCode)
 
 ## License
 
