@@ -81,14 +81,62 @@ function resolveModel(selection) {
   return { provider, model, reasoningEffort: selection.reasoningEffort }
 }
 
-const SYSTEM_PROMPT = (skillBody) => `${skillBody}
+/** The skill's own print stylesheet: the panel and the PDF must share it. */
+function readTemplateCss() {
+  const raw = readFileSync(join(skillDir, 'assets', 'template.html'), 'utf8')
+  const match = /<style>([\s\S]*?)<\/style>/i.exec(raw)
+  return match ? match[1] : ''
+}
 
+const HTML_CONTRACT = `
+## 输出格式（必须严格遵守）
+
+只输出一个 **HTML 片段**，不要 \`\`\` 代码围栏、不要 <html>/<head>/<body>、不要 Markdown。
+样式已经由模板提供，你只需要用下面这些现成的 class：
+
+- 篇标题：<h2>文章 N<span class="en">主题（中文）</span></h2>
+- 每段：<div class="para"><p class="en">英文原文</p><p class="zh">中文译文</p></div>
+- 长难句在原文里用 <mark>句子</mark><sup class="no">①</sup> 标出，编号与后面卡片对应
+- 分块小标题：<h3 class="blk">题目 · 选项 · 答案<span class="n">1–3</span></h3>
+- 题目卡片：
+  <div class="q">
+    <div class="q-h"><span class="qn">1</span><span class="q-en">题干英文</span></div>
+    <div class="q-zh">题干中文</div>
+    <div class="opts">
+      <div class="opt"><b>A</b>选项英文　<i>选项中文</i></div>
+      ... B C D
+    </div>
+    <div class="ans"><span class="key">答案 A</span>定位与解析</div>
+  </div>
+- 作答对错表：<table class="dat"> 表头 题号/作答/参考答案/判定/错因；勾用 <td class="ok">✓</td>，叉用 <td class="no">✗</td>
+- 长难句卡片：
+  <div class="card">
+    <div class="card-h"><div class="num">1</div><div class="where">第 N 段 ｜ 27 词 ｜ 结构类型</div></div>
+    <div class="src">原句</div>
+    <table class="fr">
+      <tr><th>主句</th><td>
+        <span class="seg c-s"><span class="t">主语</span><span class="l">主语</span></span>
+        <span class="seg c-v"><span class="t">谓语</span><span class="l">谓语</span></span>
+        <span class="seg c-o"><span class="t">宾语</span><span class="l">宾语</span></span>
+      </td></tr>
+      <tr><th>定语从句</th><td>...</td></tr>
+    </table>
+    <p class="zhs">整句中文</p>
+    <p class="note"><b>要点</b>解析</p>
+    <div class="kp"><b>高频考点</b>考点</div>
+  </div>
+
+成分颜色 class：c-s 主语 / c-v 谓语 / c-o 宾语 / c-d 定语从句 / c-a 状语 / c-l 补语。
+左栏 th 写成分名（主句、定语从句、状语……），右栏 td 里每个 .seg 的 .t 是原词、.l 是成分小标签。
+没有作答信息时不要输出作答对错表；没有题目时不要输出题目块。
+`
+
+const SYSTEM_PROMPT = (skillBody) => `${skillBody}
+${HTML_CONTRACT}
 ## 本次调用方式
 
-你在一个面板里被直接调用：用户看不到对话过程，只会看到你的输出被渲染出来。
-- 只输出 Markdown 正文。不要前言、不要说"下面是分析"、不要解释你在做什么。
-- 不要用代码块围栏包裹整篇内容，不要输出 HTML。
-- 每篇文章独立成块，块内顺序固定：原文＋译文 → 题目·选项·答案 → 作答对错分析 → 长难句拆解。缺失的环节直接省略。
+你在一个面板里被直接调用：用户看不到对话过程，只会看到你的输出被渲染成和打印稿一样的版式。
+- 第一行就从 <h2> 开始，结尾不要加解释、不要说"以上"。
 - 不要提"已生成 PDF"或"是否下载"，导出由用户自己决定。`
 
 export function apply(ctx) {
@@ -212,8 +260,13 @@ export function apply(ctx) {
       return sendJson(res, 400, { error: 'invalid JSON body' })
     }
 
-    const html = String(payload?.html || '')
-    if (!html.trim()) return sendJson(res, 400, { error: 'empty html' })
+    const fragment = String(payload?.html || '')
+    if (!fragment.trim()) return sendJson(res, 400, { error: 'empty html' })
+    const title = String(payload?.title || '英语阅读分析')
+    const html = `<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>${title}</title>
+<style>${templateCss}</style></head>
+<body>${fragment}</body></html>`
 
     let work
     try {
@@ -270,8 +323,16 @@ export function apply(ctx) {
     })
   }
 
+  const templateCss = readTemplateCss()
+
+  const style = (_req, res) => {
+    res.writeHead(200, { 'content-type': 'text/css; charset=utf-8', 'cache-control': 'no-store' })
+    res.end(templateCss)
+  }
+
   const ROUTES = [
     { path: `${ROUTE_PREFIX}/health`, handler: health },
+    { path: `${ROUTE_PREFIX}/style.css`, handler: style },
     { path: `${ROUTE_PREFIX}/analyze`, handler: analyze },
     { path: `${ROUTE_PREFIX}/pdf`, handler: renderPdf },
   ]

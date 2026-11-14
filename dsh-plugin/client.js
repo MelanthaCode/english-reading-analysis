@@ -1,8 +1,8 @@
 // Client half of dsh-skill-english-reading.
 //
-// A sidebar entry plus its main panel. The panel talks to the Host half over two
-// same-origin routes (see index.js): /x-english-reading/analyze streams Markdown,
-// /x-english-reading/pdf renders a PDF only when the user asks for one.
+// Sidebar entry + main panel. The panel posts to the Host's same-origin routes
+// and renders the reply with the skill's own stylesheet, so what you see here is
+// what the PDF prints. The PDF route is only called when the user asks for it.
 
 window.__ModuleLoader__.load({
   id: 'dsh-skill-english-reading',
@@ -21,8 +21,9 @@ window.__ModuleLoader__.load({
       chars: '字符',
       clear: '清空',
       start: '开始分析',
-      stop: '已停止',
-      running: '分析中…',
+      running: '正在分析',
+      elapsed: '已用时',
+      produced: '已生成',
       note: 'PDF、扫描件、照片请在对话里作为附件发送；这里适合粘贴文字。',
       empty: '先粘贴英文，或拖入一个文本文件。',
       fileLoaded: '文件已读入',
@@ -34,6 +35,8 @@ window.__ModuleLoader__.load({
       again: '再分析一篇',
       ready: '分析完成',
       paged: '已下载',
+      stop: '已停止',
+      runningNote: '模型正在逐段翻译与拆解，完成后会以与打印稿一致的版式呈现。',
     }
 
     const TEXT_EN = {
@@ -43,8 +46,9 @@ window.__ModuleLoader__.load({
       chars: 'characters',
       clear: 'Clear',
       start: 'Analyse',
-      stop: 'Stopped',
-      running: 'Analysing…',
+      running: 'Analysing',
+      elapsed: 'elapsed',
+      produced: 'produced',
       note: 'Attach PDFs, scans or photos in the conversation; this panel is for pasted text.',
       empty: 'Paste the English first, or drop a text file.',
       fileLoaded: 'File loaded',
@@ -56,24 +60,34 @@ window.__ModuleLoader__.load({
       again: 'Analyse another',
       ready: 'Done',
       paged: 'Downloaded',
+      stop: 'Stopped',
+      runningNote: 'The model is translating and breaking down the passage; the result will appear in the same layout as the print version.',
     }
+
+    const KEYFRAMES = `
+      @keyframes er-indeterminate {
+        0%   { transform: translateX(-100%) scaleX(0.35); }
+        50%  { transform: translateX(20%)  scaleX(0.55); }
+        100% { transform: translateX(100%) scaleX(0.35); }
+      }
+    `
 
     const styles = {
       page: {
         height: '100%',
         overflowY: 'auto',
-        padding: '28px 32px 56px',
+        padding: '26px 32px 40px',
         color: 'var(--dsw-alias-label-primary)',
         background: 'var(--dsw-alias-bg-base)',
         boxSizing: 'border-box',
       },
-      inner: { maxWidth: 820, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 },
+      inner: { maxWidth: 900, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14 },
       title: { fontSize: 20, fontWeight: 600, margin: 0 },
       subtitle: { margin: 0, color: 'var(--dsw-alias-label-secondary)', fontSize: 13, lineHeight: 1.65 },
       zone: {
         display: 'flex',
         flexDirection: 'column',
-        minHeight: 240,
+        minHeight: 220,
         borderRadius: 14,
         border: '1.5px dashed var(--dsw-alias-border-l2)',
         boxSizing: 'border-box',
@@ -83,7 +97,7 @@ window.__ModuleLoader__.load({
       zoneInput: {
         flex: 1,
         width: '100%',
-        minHeight: 180,
+        minHeight: 170,
         padding: '18px 20px 8px',
         border: 'none',
         outline: 'none',
@@ -137,6 +151,41 @@ window.__ModuleLoader__.load({
       },
       status: { fontSize: 12, color: 'var(--dsw-alias-label-secondary)' },
       statusError: { fontSize: 12, color: 'var(--dsw-alias-state-error-primary)' },
+
+      progressCard: {
+        border: '1px solid var(--dsw-alias-border-l1)',
+        background: 'var(--dsw-alias-bg-layer-1)',
+        borderRadius: 12,
+        padding: '18px 20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+      },
+      progressHead: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'baseline',
+        fontSize: 13,
+        color: 'var(--dsw-alias-label-primary)',
+        gap: 12,
+      },
+      progressMeta: { fontSize: 12, color: 'var(--dsw-alias-label-secondary)', fontVariantNumeric: 'tabular-nums' },
+      track: {
+        position: 'relative',
+        height: 4,
+        borderRadius: 999,
+        background: 'var(--dsw-alias-bg-layer-2)',
+        overflow: 'hidden',
+      },
+      bar: {
+        position: 'absolute',
+        inset: 0,
+        width: '100%',
+        borderRadius: 999,
+        background: 'var(--dsw-alias-brand-primary)',
+        transformOrigin: 'left center',
+        animation: 'er-indeterminate 1.4s ease-in-out infinite',
+      },
       resultHead: {
         display: 'flex',
         alignItems: 'center',
@@ -144,168 +193,20 @@ window.__ModuleLoader__.load({
         gap: 12,
         flexWrap: 'wrap',
       },
-      resultBox: {
-        borderRadius: 12,
+      frameWrap: {
         border: '1px solid var(--dsw-alias-border-l1)',
-        background: 'var(--dsw-alias-bg-layer-1)',
-        padding: '20px 24px',
-        fontSize: 14,
-        lineHeight: 1.85,
+        borderRadius: 10,
+        overflow: 'hidden',
+        background: '#ffffff',
       },
-    }
-
-    const RESULT_CSS = `
-      .er h1,.er h2,.er h3{line-height:1.4;margin:1.2em 0 .5em;font-weight:600}
-      .er h1{font-size:19px}.er h2{font-size:17px}.er h3{font-size:15px}
-      .er p{margin:.6em 0}
-      .er ul,.er ol{margin:.5em 0 .5em 1.4em;padding:0}
-      .er li{margin:.25em 0}
-      .er blockquote{margin:.6em 0;padding:.2em .9em;border-left:3px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary)}
-      .er table{border-collapse:collapse;width:100%;table-layout:fixed;margin:.8em 0;font-size:13px}
-      .er th,.er td{border:1px solid var(--dsw-alias-border-l1);padding:6px 9px;vertical-align:top;text-align:left}
-      .er th{background:var(--dsw-alias-bg-layer-2);font-weight:600}
-      .er code{font-family:ui-monospace,Menlo,monospace;font-size:.92em;background:var(--dsw-alias-bg-layer-2);padding:1px 5px;border-radius:4px}
-      .er hr{border:none;border-top:1px solid var(--dsw-alias-border-l1);margin:1.2em 0}
-      .er strong{font-weight:600}
-    `
-
-    function escapeHtml(text) {
-      return String(text)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-    }
-
-    function inline(text) {
-      let out = escapeHtml(text)
-      out = out.replace(/`([^`]+)`/g, '<code>$1</code>')
-      out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-      out = out.replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>')
-      return out
-    }
-
-    /** Minimal Markdown: headings, lists, tables, quotes, rules, paragraphs. */
-    function mdToHtml(markdown) {
-      const lines = String(markdown).replace(/\r\n/g, '\n').split('\n')
-      const out = []
-      let list = null
-      let tableRows = null
-
-      const closeList = () => {
-        if (list) {
-          out.push(`</${list}>`)
-          list = null
-        }
-      }
-      const closeTable = () => {
-        if (tableRows) {
-          out.push('</tbody></table>')
-          tableRows = null
-        }
-      }
-
-      for (const raw of lines) {
-        const line = raw.replace(/\s+$/, '')
-
-        if (!line.trim()) {
-          closeList()
-          closeTable()
-          continue
-        }
-
-        if (/^\s*\|.*\|\s*$/.test(line)) {
-          closeList()
-          const cells = line
-            .trim()
-            .replace(/^\|/, '')
-            .replace(/\|$/, '')
-            .split('|')
-            .map((cell) => cell.trim())
-
-          if (cells.every((cell) => /^:?-{2,}:?$/.test(cell) || cell === '')) continue
-
-          if (!tableRows) {
-            out.push('<table><tbody>')
-            tableRows = 0
-          }
-          const tag = tableRows === 0 ? 'th' : 'td'
-          tableRows += 1
-          out.push(`<tr>${cells.map((cell) => `<${tag}>${inline(cell)}</${tag}>`).join('')}</tr>`)
-          continue
-        }
-        closeTable()
-
-        const heading = /^(#{1,6})\s+(.*)$/.exec(line)
-        if (heading) {
-          closeList()
-          const level = Math.min(heading[1].length + 1, 4)
-          out.push(`<h${level}>${inline(heading[2])}</h${level}>`)
-          continue
-        }
-
-        if (/^\s*([-*+])\s+/.test(line)) {
-          if (list !== 'ul') {
-            closeList()
-            out.push('<ul>')
-            list = 'ul'
-          }
-          out.push(`<li>${inline(line.replace(/^\s*[-*+]\s+/, ''))}</li>`)
-          continue
-        }
-
-        if (/^\s*\d+[.)]\s+/.test(line)) {
-          if (list !== 'ol') {
-            closeList()
-            out.push('<ol>')
-            list = 'ol'
-          }
-          out.push(`<li>${inline(line.replace(/^\s*\d+[.)]\s+/, ''))}</li>`)
-          continue
-        }
-
-        if (/^\s*>\s?/.test(line)) {
-          closeList()
-          out.push(`<blockquote>${inline(line.replace(/^\s*>\s?/, ''))}</blockquote>`)
-          continue
-        }
-
-        if (/^\s*(-{3,}|\*{3,})\s*$/.test(line)) {
-          closeList()
-          out.push('<hr>')
-          continue
-        }
-
-        closeList()
-        out.push(`<p>${inline(line)}</p>`)
-      }
-
-      closeList()
-      closeTable()
-      return out.join('\n')
-    }
-
-    function printDocument(title, bodyHtml) {
-      return `<!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
-<style>
-  @page { size: A4; margin: 16mm 15mm; }
-  body { font-family: "Songti SC", "SimSun", "Noto Serif CJK SC", Georgia, serif; font-size: 10.5pt; line-height: 1.8; color: #111; }
-  h1 { font-size: 17pt; margin: 0 0 8mm; }
-  h2 { font-size: 13pt; margin: 6mm 0 2mm; }
-  h3 { font-size: 11.5pt; margin: 5mm 0 2mm; }
-  p { margin: 2mm 0; }
-  ul, ol { margin: 2mm 0 2mm 6mm; padding: 0; }
-  li { margin: 1mm 0; }
-  blockquote { margin: 3mm 0; padding-left: 4mm; border-left: 2px solid #999; color: #444; }
-  table { border-collapse: collapse; width: 100%; margin: 3mm 0; font-size: 9.5pt; }
-  th, td { border: 0.4pt solid #999; padding: 1.6mm 2mm; vertical-align: top; text-align: left; }
-  th { background: #f0f0f0; }
-  code { font-family: ui-monospace, Menlo, monospace; font-size: 9.5pt; }
-  hr { border: none; border-top: 0.4pt solid #ccc; margin: 5mm 0; }
-  h1, h2, h3 { break-after: avoid; }
-  table, tr, li { break-inside: avoid; }
-</style></head><body>${bodyHtml}</body></html>`
+      frame: {
+        width: '100%',
+        height: 'calc(100vh - 300px)',
+        minHeight: 420,
+        border: 'none',
+        display: 'block',
+        background: '#ffffff',
+      },
     }
 
     function SidebarIcon(props) {
@@ -345,9 +246,11 @@ window.__ModuleLoader__.load({
       const [text, setText] = React.useState('')
       const [fileName, setFileName] = React.useState('')
       const [dragging, setDragging] = React.useState(false)
-      const [view, setView] = React.useState('input')
-      const [markdown, setMarkdown] = React.useState('')
-      const [busy, setBusy] = React.useState(false)
+      const [phase, setPhase] = React.useState('input') // input | running | result
+      const [fragment, setFragment] = React.useState('')
+      const [css, setCss] = React.useState('')
+      const [chars, setChars] = React.useState(0)
+      const [seconds, setSeconds] = React.useState(0)
       const [status, setStatus] = React.useState(null)
       const abortRef = React.useRef(null)
 
@@ -357,6 +260,25 @@ window.__ModuleLoader__.load({
         },
         [],
       )
+
+      React.useEffect(() => {
+        if (phase !== 'running') return undefined
+        const started = Date.now()
+        const timer = setInterval(() => setSeconds(Math.round((Date.now() - started) / 1000)), 1000)
+        return () => clearInterval(timer)
+      }, [phase])
+
+      const ensureCss = async () => {
+        if (css) return css
+        try {
+          const response = await fetch(`${API}/style.css`)
+          const text = await response.text()
+          setCss(text)
+          return text
+        } catch {
+          return ''
+        }
+      }
 
       const readDropped = async (file) => {
         const name = (file.name || '').toLowerCase()
@@ -380,12 +302,15 @@ window.__ModuleLoader__.load({
           setStatus({ ok: false, text: t('empty') })
           return
         }
+
         const controller = new AbortController()
         abortRef.current = controller
-        setBusy(true)
-        setStatus({ ok: true, text: t('running') })
-        setMarkdown('')
-        setView('result')
+        setFragment('')
+        setChars(0)
+        setSeconds(0)
+        setStatus(null)
+        setPhase('running')
+        await ensureCss()
 
         try {
           const response = await fetch(`${API}/analyze`, {
@@ -403,6 +328,8 @@ window.__ModuleLoader__.load({
           const decoder = new TextDecoder()
           let buffer = ''
           let acc = ''
+          let lastPaint = 0
+
           for (;;) {
             const { done, value } = await reader.read()
             if (done) break
@@ -421,31 +348,41 @@ window.__ModuleLoader__.load({
               }
               if (event.delta) {
                 acc += event.delta
-                setMarkdown(acc)
+                const now = Date.now()
+                if (now - lastPaint > 250) {
+                  lastPaint = now
+                  setChars(acc.replace(/\s+/g, '').length)
+                }
               } else if (event.error) {
                 throw new Error(event.error)
               }
             }
           }
+
+          setChars(acc.replace(/\s+/g, '').length)
+          setFragment(acc)
+          setPhase('result')
           setStatus({ ok: true, text: t('ready') })
         } catch (error) {
-          if (error && error.name === 'AbortError') setStatus({ ok: false, text: t('stop') })
-          else setStatus({ ok: false, text: `${t('failed')}：${(error && error.message) || error}` })
+          if (error && error.name === 'AbortError') {
+            setStatus({ ok: false, text: t('stop') })
+          } else {
+            setStatus({ ok: false, text: `${t('failed')}：${(error && error.message) || error}` })
+          }
+          setPhase(fragment ? 'result' : 'input')
         } finally {
           abortRef.current = null
-          setBusy(false)
         }
       }
 
       const downloadPdf = async () => {
-        if (!markdown.trim()) return
+        if (!fragment.trim()) return
         setStatus({ ok: true, text: t('preparing') })
         try {
-          const html = printDocument(t('title'), `<div class="er">${mdToHtml(markdown)}</div>`)
           const response = await fetch(`${API}/pdf`, {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ html }),
+            body: JSON.stringify({ html: fragment, title: t('title') }),
           })
           if (!response.ok) {
             const detail = await response.json().catch(() => ({}))
@@ -466,18 +403,37 @@ window.__ModuleLoader__.load({
         }
       }
 
-      const zoneStyle = {
-        ...styles.zone,
-        borderColor: dragging ? 'var(--dsw-alias-brand-primary)' : 'var(--dsw-alias-border-l2)',
-        background: dragging ? 'var(--dsw-alias-bg-layer-2)' : 'var(--dsw-alias-bg-layer-1)',
-      }
-
       const header = [
         h('h1', { key: 'title', style: styles.title }, t('title')),
         h('p', { key: 'subtitle', style: styles.subtitle }, t('subtitle')),
       ]
 
-      if (view === 'result') {
+      if (phase === 'running') {
+        return h(
+          'div',
+          { style: styles.page },
+          h(
+            'div',
+            { style: styles.inner },
+            header,
+            h(
+              'div',
+              { style: styles.progressCard },
+              h(
+                'div',
+                { style: styles.progressHead },
+                h('span', null, `${t('running')}…`),
+                h('span', { style: styles.progressMeta }, `${t('elapsed')} ${seconds}s · ${t('produced')} ${chars} ${t('chars')}`),
+              ),
+              h('div', { style: styles.track }, h('div', { style: styles.bar })),
+              h('p', { style: styles.note }, t('runningNote')),
+            ),
+          ),
+        )
+      }
+
+      if (phase === 'result') {
+        const doc = `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><style>${css}</style></head><body>${fragment}</body></html>`
         return h(
           'div',
           { style: styles.page },
@@ -492,20 +448,15 @@ window.__ModuleLoader__.load({
               h(
                 'div',
                 { style: styles.actions },
-                h(
-                  'button',
-                  { type: 'button', style: styles.primary, onClick: downloadPdf, disabled: busy || !markdown.trim() },
-                  t('download'),
-                ),
+                h('button', { type: 'button', style: styles.primary, onClick: downloadPdf }, t('download')),
                 h(
                   'button',
                   {
                     type: 'button',
                     style: styles.secondary,
                     onClick: () => {
-                      if (abortRef.current) abortRef.current.abort()
-                      setView('input')
-                      setMarkdown('')
+                      setPhase('input')
+                      setFragment('')
                       setStatus(null)
                     },
                   },
@@ -513,16 +464,7 @@ window.__ModuleLoader__.load({
                 ),
               ),
             ),
-            h(
-              'div',
-              { style: styles.resultBox },
-              h('style', null, RESULT_CSS),
-              h('div', {
-                className: 'er',
-                // Rendered locally from Markdown; every interpolated value is HTML-escaped first.
-                dangerouslySetInnerHTML: { __html: mdToHtml(markdown || (busy ? t('running') : '')) },
-              }),
-            ),
+            h('div', { style: styles.frameWrap }, h('iframe', { style: styles.frame, srcDoc: doc, sandbox: '' })),
           ),
         )
       }
@@ -533,11 +475,16 @@ window.__ModuleLoader__.load({
         h(
           'div',
           { style: styles.inner },
+          h('style', null, KEYFRAMES),
           header,
           h(
             'div',
             {
-              style: zoneStyle,
+              style: {
+                ...styles.zone,
+                borderColor: dragging ? 'var(--dsw-alias-brand-primary)' : 'var(--dsw-alias-border-l2)',
+                background: dragging ? 'var(--dsw-alias-bg-layer-2)' : 'var(--dsw-alias-bg-layer-1)',
+              },
               onDragOver: (event) => {
                 event.preventDefault()
                 setDragging(true)
