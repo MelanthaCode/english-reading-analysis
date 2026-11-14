@@ -1,0 +1,18 @@
+{
+  "name": "melantha-skills",
+  "description": "Agent skills by Melantha, focused on turning English reading material into print-ready Chinese study documents.",
+  "owner": {
+    "name": "Melantha",
+    "url": "https://github.com/MelanthaCode"
+  },
+  "plugins": [
+    {
+      "name": "english-reading-analysis",
+      "source": "./",
+      "description": "Turn English passages and exam papers into Chinese analysis: translation, answers, error analysis, long-sentence breakdown, print-ready A4 PDF.",
+      "version": "1.0.0",
+      "license": "MIT",
+      "keywords": ["english", "translation", "exam-paper", "education", "pdf"]
+    }
+  ]
+}

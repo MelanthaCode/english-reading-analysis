@@ -1,0 +1,25 @@
+{
+  "name": "english-reading-analysis",
+  "displayName": "English Reading Analysis",
+  "description": "Turn English passages and exam papers into Chinese analysis: paragraph-by-paragraph translation, question and option translation with answers, error analysis, long-sentence syntax breakdown, and print-ready A4 PDF output.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Melantha",
+    "url": "https://github.com/MelanthaCode"
+  },
+  "homepage": "https://github.com/MelanthaCode/english-reading-analysis",
+  "repository": "https://github.com/MelanthaCode/english-reading-analysis",
+  "license": "MIT",
+  "keywords": [
+    "english",
+    "translation",
+    "reading-comprehension",
+    "exam-paper",
+    "sentence-analysis",
+    "education",
+    "pdf"
+  ],
+  "skills": [
+    "./"
+  ]
+}
