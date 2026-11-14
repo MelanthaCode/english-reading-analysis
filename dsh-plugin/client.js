@@ -201,9 +201,9 @@ window.__ModuleLoader__.load({
       docHost: { display: 'block', marginTop: 4 },
     }
 
-    // 20-unit grid, set as type. A is large but light (weight 300 keeps it from
-    // turning into a blob at 20 px); 文 is upright, 65% of A's size, dropped so it
-    // sits on the lower-right of the diagonal.
+    // 20-unit grid, set as type: A light (300) and slightly smaller, 文 a touch
+    // larger, so the two read as a balanced pair rather than a big initial with a
+    // small suffix.
     const FONT_A = "'Helvetica Neue', Arial, 'PingFang SC', sans-serif"
     const FONT_WEN = "'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif"
 
@@ -219,8 +219,8 @@ window.__ModuleLoader__.load({
           'aria-hidden': true,
           style: { display: 'block' },
         },
-        h('text', { x: 4.9, y: 13.8, textAnchor: 'middle', fontFamily: FONT_A, fontSize: 16.8, fontWeight: 300 }, 'A'),
-        h('text', { x: 15.1, y: 19.8, textAnchor: 'middle', fontFamily: FONT_WEN, fontSize: 10.8, fontWeight: 400 }, '文'),
+        h('text', { x: 4.3, y: 13.4, textAnchor: 'middle', fontFamily: FONT_A, fontSize: 13.8, fontWeight: 300 }, 'A'),
+        h('text', { x: 15.1, y: 20, textAnchor: 'middle', fontFamily: FONT_WEN, fontSize: 12.8, fontWeight: 400 }, '文'),
       )
     }
 
