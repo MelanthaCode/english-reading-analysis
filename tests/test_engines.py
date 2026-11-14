@@ -75,7 +75,14 @@ engine = r.find_engine(explicit=wk, only="chrome")
 check("--engine chrome rejects a weasyprint binary", engine is None, str(engine))
 
 # a forced fallback engine must be found even though Chrome exists on this box
+# Windows' shutil.which only matches executables with a PATHEXT extension, so the
+# stub names must differ per platform — a real weasyprint install is weasyprint.exe.
 saved_path_2 = os.environ.get("PATH", "")
+stub_suffix = ".exe" if os.name == "nt" else ""
+for stub_name in ("weasyprint", "wkhtmltopdf"):
+    stub = tmp / (stub_name + stub_suffix)
+    stub.write_text("")
+    stub.chmod(0o755)
 os.environ["PATH"] = str(tmp) + os.pathsep + saved_path_2
 engine = r.find_engine(only="weasyprint")
 check("--engine weasyprint finds the stub on PATH", engine is not None and engine["kind"] == "weasyprint", str(engine))
