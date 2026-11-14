@@ -260,14 +260,18 @@ export function apply(ctx) {
         if (!attachments) {
           return sendJson(res, 503, { error: '附件服务不可用，无法处理图片' })
         }
-        let modalities = []
+        // Only refuse on an explicit negative: a successful lookup that lists
+        // modalities without 'image'. Unknown (adapter throws, or reports nothing)
+        // means try it — a false negative here would block a capable model.
+        let modalities = null
         try {
           const info = await llm.resolveModelInfo(selection.provider, selection.model)
-          modalities = info?.inputModalities || []
+          const listed = info?.inputModalities
+          if (Array.isArray(listed) && listed.length) modalities = listed
         } catch {
-          modalities = []
+          modalities = null
         }
-        if (!modalities.includes('image')) {
+        if (modalities && !modalities.includes('image')) {
           return sendJson(res, 415, {
             error:
               `当前模型（${selection.provider}/${selection.model}）不支持图片输入，` +
@@ -468,7 +472,8 @@ export function apply(ctx) {
     if (llm && selection && selection.provider) {
       try {
         const info = await llm.resolveModelInfo(selection.provider, selection.model)
-        vision = (info?.inputModalities || []).includes('image')
+        const listed = info?.inputModalities
+        vision = Array.isArray(listed) && listed.length ? listed.includes('image') : null
       } catch {
         vision = null
       }
