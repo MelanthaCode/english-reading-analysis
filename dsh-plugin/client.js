@@ -203,6 +203,7 @@ window.__ModuleLoader__.load({
 
     function SidebarIcon(props) {
       const size = (props && props.size) || 20
+      const clipId = 'era-sidebar-clip'
       return h(
         'svg',
         {
@@ -213,34 +214,44 @@ window.__ModuleLoader__.load({
           'aria-hidden': true,
           style: { display: 'block' },
         },
-        // Diagonal pair: Latin tile top-left, Chinese tile bottom-right.
-        h('rect', { x: 1.5, y: 1, width: 16, height: 16, rx: 4.6, fill: '#3a4178' }),
         h(
-          'text',
-          {
-            x: 9.6,
-            y: 13.2,
-            fontSize: 10.5,
-            fontWeight: 700,
-            fontFamily: 'Georgia, "Times New Roman", serif',
-            fill: '#f4efe5',
-            textAnchor: 'middle',
-          },
-          'A',
+          'defs',
+          null,
+          h('clipPath', { id: clipId }, h('rect', { width: 32, height: 32, rx: 7.5 })),
         ),
-        h('rect', { x: 14.5, y: 14.5, width: 16, height: 16, rx: 4.6, fill: '#f9564e' }),
         h(
-          'text',
-          {
-            x: 22.6,
-            y: 26.4,
-            fontSize: 9.6,
-            fontWeight: 600,
-            fontFamily: '"Songti SC", "SimSun", "Noto Serif CJK SC", serif',
-            fill: '#fffdf8',
-            textAnchor: 'middle',
-          },
-          '中',
+          'g',
+          { clipPath: `url(#${clipId})` },
+          h('rect', { width: 32, height: 32, fill: '#f4efe5' }),
+          // Same diagonal split as the market icon: Latin left, Chinese right.
+          h('path', { d: 'M0 0h21.5L15.5 32H0z', fill: '#3a4178' }),
+          h('path', { d: 'M21.5 0 15.5 32', stroke: '#f9564e', strokeWidth: 1.6, strokeLinecap: 'round' }),
+          h(
+            'text',
+            {
+              x: 9.4,
+              y: 21,
+              fontSize: 13,
+              fontWeight: 700,
+              fontFamily: 'Georgia, "Times New Roman", serif',
+              fill: '#f4efe5',
+              textAnchor: 'middle',
+            },
+            'A',
+          ),
+          h(
+            'text',
+            {
+              x: 23.4,
+              y: 21.4,
+              fontSize: 10,
+              fontWeight: 600,
+              fontFamily: '"Songti SC", "SimSun", "Noto Serif CJK SC", serif',
+              fill: '#3a4178',
+              textAnchor: 'middle',
+            },
+            '文',
+          ),
         ),
       )
     }
