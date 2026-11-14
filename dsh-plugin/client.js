@@ -201,11 +201,18 @@ window.__ModuleLoader__.load({
       docHost: { display: 'block', marginTop: 4 },
     }
 
-    // 20-unit grid, set as type: A light (300) and slightly smaller, 文 a touch
-    // larger, so the two read as a balanced pair rather than a big initial with a
-    // small suffix.
-    const FONT_A = "'Helvetica Neue', Arial, 'PingFang SC', sans-serif"
-    const FONT_WEN = "'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif"
+    // The icon is the owner's own artwork (A + 文 drawn as strokes). Its source
+    // grid is 79.2 with a 1.25 stroke; at 20 px that stroke would be 0.3 px, so the
+    // rail copy thickens it to 6 units to match the shell's other icons.
+    const ICON_PATHS = [
+      'M20.2351 1.32847 1.23843 51.5864',
+      'M20.4668 1.32847 39.4634 51.5864',
+      'M30.91 29.8725 9.94088 29.8725',
+      'M78.4033 39.8395 40.4913 39.8395',
+      'M49.7008 40.2061 77.5131 77.8859',
+      'M69.9867 39.8215 41.7923 78.0188',
+      'M57.8343 26.5656 60.9881 34.9092',
+    ]
 
     function SidebarIcon(props) {
       const size = (props && props.size) || 20
@@ -214,13 +221,16 @@ window.__ModuleLoader__.load({
         {
           width: size,
           height: size,
-          viewBox: '0 0 20 20',
-          fill: 'currentColor',
+          viewBox: '0 0 79.2 79.2',
+          fill: 'none',
+          stroke: 'currentColor',
+          strokeWidth: 6,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
           'aria-hidden': true,
           style: { display: 'block' },
         },
-        h('text', { x: 4.3, y: 13.4, textAnchor: 'middle', fontFamily: FONT_A, fontSize: 13.8, fontWeight: 300 }, 'A'),
-        h('text', { x: 15.1, y: 20, textAnchor: 'middle', fontFamily: FONT_WEN, fontSize: 12.8, fontWeight: 400 }, '文'),
+        ICON_PATHS.map((d, i) => h('path', { key: i, d })),
       )
     }
 
