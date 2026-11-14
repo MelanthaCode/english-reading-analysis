@@ -214,27 +214,22 @@ window.__ModuleLoader__.load({
           'aria-hidden': true,
           style: { display: 'block' },
         },
-        h(
-          'defs',
-          null,
-          h('clipPath', { id: clipId }, h('rect', { width: 32, height: 32, rx: 7.5 })),
-        ),
+        h('defs', null, h('clipPath', { id: clipId }, h('rect', { width: 32, height: 32, rx: 7 }))),
         h(
           'g',
           { clipPath: `url(#${clipId})` },
+          // Two colours only: paper and ink. The diagonal inverts them.
           h('rect', { width: 32, height: 32, fill: '#f4efe5' }),
-          // Same diagonal split as the market icon: Latin left, Chinese right.
-          h('path', { d: 'M0 0h21.5L15.5 32H0z', fill: '#3a4178' }),
-          h('path', { d: 'M21.5 0 15.5 32', stroke: '#f9564e', strokeWidth: 1.6, strokeLinecap: 'round' }),
+          h('path', { d: 'M0 32 32 0v32z', fill: '#2f2620' }),
           h(
             'text',
             {
               x: 9.4,
-              y: 21,
-              fontSize: 13,
+              y: 14.6,
+              fontSize: 11,
               fontWeight: 700,
               fontFamily: 'Georgia, "Times New Roman", serif',
-              fill: '#f4efe5',
+              fill: '#2f2620',
               textAnchor: 'middle',
             },
             'A',
@@ -242,12 +237,12 @@ window.__ModuleLoader__.load({
           h(
             'text',
             {
-              x: 23.4,
-              y: 21.4,
-              fontSize: 10,
+              x: 22.4,
+              y: 27,
+              fontSize: 9.4,
               fontWeight: 600,
               fontFamily: '"Songti SC", "SimSun", "Noto Serif CJK SC", serif',
-              fill: '#3a4178',
+              fill: '#f4efe5',
               textAnchor: 'middle',
             },
             '文',
