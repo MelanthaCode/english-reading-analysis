@@ -32,11 +32,10 @@ window.__ModuleLoader__.load({
       failed: '失败',
       download: '下载 PDF',
       preparing: '正在渲染 PDF…',
-      again: '再分析一篇',
+      again: '分析下一篇',
       ready: '分析完成',
       paged: '已下载',
       stop: '已停止',
-      runningNote: '模型正在逐段翻译与拆解，完成后会以与打印稿一致的版式呈现。',
     }
 
     const TEXT_EN = {
@@ -61,14 +60,14 @@ window.__ModuleLoader__.load({
       ready: 'Done',
       paged: 'Downloaded',
       stop: 'Stopped',
-      runningNote: 'The model is translating and breaking down the passage; the result will appear in the same layout as the print version.',
     }
 
+    // The bar is a travelling segment, not a full-width block: a 100%-wide bar
+    // sliding by its own width looks completely static.
     const KEYFRAMES = `
-      @keyframes er-indeterminate {
-        0%   { transform: translateX(-100%) scaleX(0.35); }
-        50%  { transform: translateX(20%)  scaleX(0.55); }
-        100% { transform: translateX(100%) scaleX(0.35); }
+      @keyframes er-slide {
+        0%   { transform: translateX(-120%); }
+        100% { transform: translateX(340%); }
       }
     `
 
@@ -179,12 +178,14 @@ window.__ModuleLoader__.load({
       },
       bar: {
         position: 'absolute',
-        inset: 0,
-        width: '100%',
+        top: 0,
+        bottom: 0,
+        left: 0,
+        width: '28%',
         borderRadius: 999,
         background: 'var(--dsw-alias-brand-primary)',
-        transformOrigin: 'left center',
-        animation: 'er-indeterminate 1.4s ease-in-out infinite',
+        animation: 'er-slide 1.25s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        willChange: 'transform',
       },
       resultHead: {
         display: 'flex',
@@ -201,8 +202,6 @@ window.__ModuleLoader__.load({
       },
       frame: {
         width: '100%',
-        height: 'calc(100vh - 300px)',
-        minHeight: 420,
         border: 'none',
         display: 'block',
         background: '#ffffff',
@@ -252,6 +251,7 @@ window.__ModuleLoader__.load({
       const [chars, setChars] = React.useState(0)
       const [seconds, setSeconds] = React.useState(0)
       const [status, setStatus] = React.useState(null)
+      const [frameHeight, setFrameHeight] = React.useState(420)
       const abortRef = React.useRef(null)
 
       React.useEffect(
@@ -403,6 +403,7 @@ window.__ModuleLoader__.load({
         }
       }
 
+      const keyframes = h('style', { key: 'kf' }, KEYFRAMES)
       const header = [
         h('h1', { key: 'title', style: styles.title }, t('title')),
         h('p', { key: 'subtitle', style: styles.subtitle }, t('subtitle')),
@@ -415,6 +416,7 @@ window.__ModuleLoader__.load({
           h(
             'div',
             { style: styles.inner },
+            keyframes,
             header,
             h(
               'div',
@@ -426,20 +428,41 @@ window.__ModuleLoader__.load({
                 h('span', { style: styles.progressMeta }, `${t('elapsed')} ${seconds}s · ${t('produced')} ${chars} ${t('chars')}`),
               ),
               h('div', { style: styles.track }, h('div', { style: styles.bar })),
-              h('p', { style: styles.note }, t('runningNote')),
             ),
           ),
         )
       }
 
       if (phase === 'result') {
-        const doc = `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><style>${css}</style></head><body>${fragment}</body></html>`
+        // No sandbox: the height has to be measured from the document, which
+        // needs same-origin access. Model output is stripped of scripts and
+        // inline handlers first, so the frame cannot execute anything.
+        const safe = String(fragment)
+          .replace(/<script[\s\S]*?<\/script>/gi, '')
+          .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')
+          .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
+          .replace(/javascript:/gi, '')
+        const doc = `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><style>${css}</style></head><body>${safe}</body></html>`
+
+        const measure = (event) => {
+          try {
+            const win = event.target.contentWindow
+            const body = win && win.document && win.document.body
+            if (!body) return
+            const height = Math.ceil(Math.max(body.scrollHeight, body.offsetHeight))
+            if (height > 0) setFrameHeight(Math.min(Math.max(height + 12, 240), 12000))
+          } catch {
+            /* measurement is best-effort */
+          }
+        }
+
         return h(
           'div',
           { style: styles.page },
           h(
             'div',
             { style: styles.inner },
+            keyframes,
             header,
             h(
               'div',
@@ -464,7 +487,15 @@ window.__ModuleLoader__.load({
                 ),
               ),
             ),
-            h('div', { style: styles.frameWrap }, h('iframe', { style: styles.frame, srcDoc: doc, sandbox: '' })),
+            h(
+              'div',
+              { style: styles.frameWrap },
+              h('iframe', {
+                style: { ...styles.frame, height: frameHeight },
+                srcDoc: doc,
+                onLoad: measure,
+              }),
+            ),
           ),
         )
       }
@@ -475,7 +506,7 @@ window.__ModuleLoader__.load({
         h(
           'div',
           { style: styles.inner },
-          h('style', null, KEYFRAMES),
+          keyframes,
           header,
           h(
             'div',
