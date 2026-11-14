@@ -202,7 +202,7 @@ window.__ModuleLoader__.load({
     }
 
     // The owner's own artwork, placed unchanged: seven strokes on a 79.2 grid at
-    // the original 1.25 stroke width and colour. Adjustments happen at the source.
+    // the file's own 2.5 stroke width and colour. Adjustments happen at the source.
     const ICON_PATHS = [
       'M20.2351 1.32847 1.23843 51.5864',
       'M20.4668 1.32847 39.4634 51.5864',
@@ -223,7 +223,7 @@ window.__ModuleLoader__.load({
           viewBox: '0 0 79.2 79.2',
           fill: 'none',
           stroke: '#000000',
-          strokeWidth: 1.25,
+          strokeWidth: 2.5,
           strokeLinecap: 'round',
           strokeLinejoin: 'round',
           'aria-hidden': true,
