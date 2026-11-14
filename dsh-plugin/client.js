@@ -201,9 +201,8 @@ window.__ModuleLoader__.load({
       docHost: { display: 'block', marginTop: 4 },
     }
 
-    // The icon is the owner's own artwork (A + 文 drawn as strokes). Its source
-    // grid is 79.2 with a 1.25 stroke; at 20 px that stroke would be 0.3 px, so the
-    // rail copy thickens it to 6 units to match the shell's other icons.
+    // The owner's own artwork, placed unchanged: seven strokes on a 79.2 grid at
+    // the original 1.25 stroke width and colour. Adjustments happen at the source.
     const ICON_PATHS = [
       'M20.2351 1.32847 1.23843 51.5864',
       'M20.4668 1.32847 39.4634 51.5864',
@@ -223,8 +222,8 @@ window.__ModuleLoader__.load({
           height: size,
           viewBox: '0 0 79.2 79.2',
           fill: 'none',
-          stroke: 'currentColor',
-          strokeWidth: 6,
+          stroke: '#000000',
+          strokeWidth: 1.25,
           strokeLinecap: 'round',
           strokeLinejoin: 'round',
           'aria-hidden': true,
