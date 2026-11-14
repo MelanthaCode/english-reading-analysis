@@ -47,17 +47,18 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          mkdir -p "$RUNNER_TEMP/fakebin"
-          printf '#!/bin/sh\nprintf "%%%%PDF-1.4\\n%%%% fake\\n%%%%%%EOF\\n" > "$2"\n' > "$RUNNER_TEMP/fakebin/weasyprint"
-          chmod +x "$RUNNER_TEMP/fakebin/weasyprint"
-          PATH="$RUNNER_TEMP/fakebin:$PATH" python scripts/render_pdf.py tests/smoke.html degraded.pdf --engine weasyprint
           python - <<'PY'
-          import pathlib, sys
-          data = pathlib.Path("degraded.pdf").read_bytes()
-          if not data.startswith(b"%PDF"):
-              sys.exit("fallback engine produced something that is not a PDF")
-          print("ok: fallback engine path exercised")
+          import os, pathlib, stat
+          d = pathlib.Path(os.environ["RUNNER_TEMP"]) / "fakebin"
+          d.mkdir(parents=True, exist_ok=True)
+          exe = d / "weasyprint"
+          exe.write_text('#!/bin/sh\nprintf "%%PDF-1.4\\n" > "$2"\n')
+          exe.chmod(exe.stat().st_mode | stat.S_IEXEC)
+          print("stub:", exe)
           PY
+          PATH="$RUNNER_TEMP/fakebin:$PATH" python scripts/render_pdf.py tests/smoke.html degraded.pdf --engine weasyprint
+          python -c "import pathlib, sys; sys.exit(0 if pathlib.Path('degraded.pdf').read_bytes().startswith(b'%PDF') else 'not a pdf')"
+          echo "ok: degraded path produced a PDF"
 
       - name: Render the smoke page to A4 PDF
         shell: bash

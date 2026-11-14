@@ -84,12 +84,20 @@ check("--engine wkhtmltopdf finds the stub on PATH", engine is not None and engi
 os.environ["PATH"] = saved_path_2
 
 # --- no renderer at all ---------------------------------------------------
+# Deterministic across machines: point PATH at an empty directory, so no
+# fallback executable can be found regardless of what the runner has installed.
 saved_path = os.environ.get("PATH", "")
 os.environ["PATH"] = str(tmp / "empty-path")
 os.environ.pop(r.ENV_BROWSER, None)
-engine = r.find_engine(platform="plan9")
-check("unsupported platform yields None instead of crashing", engine is None, str(engine))
+check("no weasyprint on PATH yields None", r.find_engine(only="weasyprint") is None)
+check("no wkhtmltopdf on PATH yields None", r.find_engine(only="wkhtmltopdf") is None)
 os.environ["PATH"] = saved_path
+
+# an unknown platform must not crash; documented behaviour is Linux-style paths
+check(
+    "unknown platform degrades to a candidate list, never crashes",
+    isinstance(r.chrome_candidates("plan9"), list),
+)
 
 # --- regression: Windows install paths (the v1.0.0 bug) -------------------
 fake_env = {
