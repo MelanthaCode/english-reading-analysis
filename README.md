@@ -17,6 +17,22 @@
 **输入**：一篇英语文章、一份英语试卷（文字版 / 扫描件 / 手机照片）
 **输出**：中文分析文档 + 可选 A4 打印 PDF
 
+## 快速开始
+
+```bash
+# DeepSeek Harness：插件市场搜索「英语阅读分析」，或
+dsh plugin add dsh-skill-english-reading
+
+# 任意支持 Agent Skills 的工具（Codex / Cursor / Copilot / Cline / OpenCode …20+）
+npx skills add MelanthaCode/english-reading-analysis
+
+# Claude Code 插件市场
+claude plugin marketplace add MelanthaCode/english-reading-analysis
+claude plugin install english-reading-analysis@melantha-skills
+```
+
+不用装依赖、不用配 API Key。不要命令行的话，可以下[离线包](https://github.com/MelanthaCode/english-reading-analysis/releases/latest)直接解压到技能目录。
+
 ## 安装
 
 同一个仓库同时是三种形态，按你用的工具选一个：
