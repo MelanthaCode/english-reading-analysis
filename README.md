@@ -2,7 +2,7 @@
 
 [![Stars](https://img.shields.io/github/stars/MelanthaCode/english-reading-analysis?style=social)](https://github.com/MelanthaCode/english-reading-analysis/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-8A2BE2)](#兼容性)
+[![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-8A2BE2)](https://skills.sh/melanthacode/english-reading-analysis/english-reading-analysis)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-d97757)](#安装)
 [![npm](https://img.shields.io/npm/v/dsh-skill-english-reading?logo=npm&label=npm)](https://www.npmjs.com/package/dsh-skill-english-reading)
 [![npm downloads](https://img.shields.io/npm/dm/dsh-skill-english-reading)](https://www.npmjs.com/package/dsh-skill-english-reading)
