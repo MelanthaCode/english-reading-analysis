@@ -217,6 +217,7 @@ export function apply(ctx) {
   const modelService = () => getService('agentDefaultModel')
 
   const analyze = async (req, res) => {
+    if (!guard(req, res)) return
     if (req.method !== 'POST') return sendJson(res, 405, { error: 'method not allowed' })
 
     let payload
@@ -413,6 +414,7 @@ export function apply(ctx) {
   }
 
   const renderPdf = async (req, res) => {
+    if (!guard(req, res)) return
     if (req.method !== 'POST') return sendJson(res, 405, { error: 'method not allowed' })
 
     let payload
@@ -468,7 +470,8 @@ export function apply(ctx) {
     }
   }
 
-  const health = async (_req, res) => {
+  const health = async (req, res) => {
+    if (!guard(req, res)) return
     const model = modelService()
     let selection = null
     try {
@@ -501,12 +504,58 @@ export function apply(ctx) {
 
   // Read per request, not at apply time: editing the stylesheet then only needs a
   // page refresh instead of a host restart.
-  const style = (_req, res) => {
+  const style = (req, res) => {
+    if (!guard(req, res)) return
     res.writeHead(200, { 'content-type': 'text/css; charset=utf-8', 'cache-control': 'no-store' })
     res.end(readTemplateCss())
   }
 
+  /**
+   * These routes run on the same HTTP server as the GUI, so without a check any
+   * web page could POST to 127.0.0.1 and spend the user's model quota. Browsers
+   * mark the initiator: same-origin requests come from the panel, cross-site ones
+   * from any other page. Reject anything that is not ours.
+   * (Reported by the awesome-dsh-plugin reviewer when the entry was merged.)
+   */
+  // Set once the web server hands over its origin (see registerAll). Used to pin
+  // the exact Origin header the panel sends.
+  let expectedOrigin = null
+
+  const LOOPBACK = new Set(['127.0.0.1', 'localhost', '::1', '[::1]'])
+
+  const isSameOrigin = (req) => {
+    const headers = req.headers || {}
+
+    // 1. A browser marks who initiated the request.
+    const site = headers['sec-fetch-site']
+    if (site && site !== 'same-origin' && site !== 'none') return false
+
+    // 2. The Host must be loopback. Without this, a DNS-rebinding page is served
+    //    from the attacker's domain and sends Origin/Host of that same domain,
+    //    which would otherwise compare equal.
+    const host = String(headers.host || '')
+    const hostname = host.replace(/:\d+$/, '')
+    if (!LOOPBACK.has(hostname)) return false
+
+    // 3. If an Origin is present it must be the server's own origin.
+    const origin = headers.origin
+    if (!origin) return true
+    if (expectedOrigin) return origin === expectedOrigin
+    try {
+      return new URL(origin).host === host
+    } catch {
+      return false
+    }
+  }
+
+  const guard = (req, res) => {
+    if (isSameOrigin(req)) return true
+    sendJson(res, 403, { error: 'cross-site request blocked' })
+    return false
+  }
+
   const extract = async (req, res) => {
+    if (!guard(req, res)) return
     if (req.method !== 'POST') return sendJson(res, 405, { error: 'method not allowed' })
 
     let payload
@@ -568,6 +617,7 @@ export function apply(ctx) {
 
   const registerAll = (webServer, via) => {
     try {
+      expectedOrigin = webServer.getOrigin()
       for (const route of ROUTES) {
         ctx.effect(() => webServer.register({ kind: 'exact', path: route.path, handler: route.handler }))
       }

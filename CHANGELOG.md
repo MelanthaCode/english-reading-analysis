@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.6.3 — 2026-11-17
+
+- **Security fix**, reported by the awesome-dsh-plugin reviewer: the plugin's
+  HTTP routes had no access check, so any web page open in the browser could post
+  to `127.0.0.1` and spend the user's model quota. Every route now requires a
+  same-origin request: `Sec-Fetch-Site` must be same-origin, the `Host` must be a
+  loopback address (blocks DNS rebinding), and any `Origin` must equal the
+  server's own origin.
+
 ## 2026-11-14 — first npm release
 
 `dsh-skill-english-reading@1.6.2` is live on npm (author: Melantha, MIT).
