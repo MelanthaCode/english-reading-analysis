@@ -499,16 +499,38 @@ window.__ModuleLoader__.load({
         }
       }
 
+      const readSaved = async (kind, name) => {
+        const root = await subdir(dirHandle, ROOT_DIR)
+        const dir = await subdir(root, kind)
+        const text = await (await dir.getFileHandle(name)).getFile().then((file) => file.text())
+        const body = /<body[^>]*>([\s\S]*)<\/body>/i.exec(text)
+        return body ? body[1] : text
+      }
+
       const openSaved = async (kind, name) => {
         try {
-          const root = await subdir(dirHandle, ROOT_DIR)
-          const dir = await subdir(root, kind)
-          const file = await (await dir.getFileHandle(name)).getFile()
-          const text = await file.text()
-          const body = /<body[^>]*>([\s\S]*)<\/body>/i.exec(text)
-          setFragment(body ? body[1] : text)
+          if (!(await ensurePermission(dirHandle))) {
+            setStoreNote({ ok: false, text: t('storageDenied') })
+            return
+          }
+          setFragment(await readSaved(kind, name))
+          setPdfTitle(name.replace(/^\d{8}-\d{6}-/, '').replace(/\.html$/, ''))
           setPhase('result')
           setPanel(null)
+          setStatus({ ok: true, text: t('ready') })
+        } catch {
+          setStoreNote({ ok: false, text: t('readFailed') })
+        }
+      }
+
+      const downloadSaved = async (kind, name) => {
+        try {
+          if (!(await ensurePermission(dirHandle))) {
+            setStoreNote({ ok: false, text: t('storageDenied') })
+            return
+          }
+          const topic = name.replace(/^\d{8}-\d{6}-/, '').replace(/\.html$/, '')
+          await renderPdf(await readSaved(kind, name), `ERA_${topic}`)
         } catch {
           setStoreNote({ ok: false, text: t('readFailed') })
         }
@@ -696,14 +718,14 @@ window.__ModuleLoader__.load({
         }
       }
 
-      const downloadPdf = async () => {
-        if (!fragment.trim()) return
+      const renderPdf = async (html, fileBase) => {
+        if (!String(html || '').trim()) return
         setStatus({ ok: true, text: t('preparing') })
         try {
           const response = await fetch(`${API}/pdf`, {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ html: fragment, title: t('title') }),
+            body: JSON.stringify({ html, title: t('title') }),
           })
           if (!response.ok) {
             const detail = await response.json().catch(() => ({}))
@@ -714,7 +736,7 @@ window.__ModuleLoader__.load({
           const url = URL.createObjectURL(blob)
           const link = document.createElement('a')
           link.href = url
-          link.download = `ERA_${topicOf(fragment)}.pdf`
+          link.download = `${fileBase || `ERA_${topicOf(fragment)}`}.pdf`
           document.body.appendChild(link)
           link.click()
           document.body.removeChild(link)
@@ -724,6 +746,8 @@ window.__ModuleLoader__.load({
           setStatus({ ok: false, text: `${t('failed')}：${(error && error.message) || error}` })
         }
       }
+
+      const downloadPdf = () => renderPdf(fragment, `ERA_${pdfTitle || topicOf(fragment)}`)
 
       const busy = phase === 'running'
 
@@ -894,6 +918,7 @@ window.__ModuleLoader__.load({
                             'span',
                             { style: { display: 'flex', gap: 8, flexShrink: 0 } },
                             h('button', { type: 'button', style: styles.storeBtn, onClick: () => openSaved(panel, item.name) }, t('open')),
+                            h('button', { type: 'button', style: styles.storeBtn, onClick: () => downloadSaved(panel, item.name) }, t('download')),
                             h('button', { type: 'button', style: styles.storeBtn, onClick: () => removeSaved(panel, item.name) }, t('remove')),
                           ),
                         ),

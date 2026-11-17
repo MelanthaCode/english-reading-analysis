@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.7.1 — 2026-11-17
+
+- History and favourites entries can now be downloaded straight to PDF from the
+  list, without loading them into the panel first. Opening one restores the
+  result view and reuses the same PDF path.
+- Directory permission is re-checked before every read or write, so a restored
+  folder handle prompts once instead of failing silently.
+
 ## 1.7.0 — 2026-11-17
 
 - **Local history and favourites.** Pick a folder once; every finished analysis is
