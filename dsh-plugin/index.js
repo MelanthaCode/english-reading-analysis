@@ -21,7 +21,9 @@ import { fileURLToPath } from 'node:url'
 const packageDir = dirname(fileURLToPath(import.meta.url))
 const skillDir = join(packageDir, 'skills', 'english-reading-analysis')
 const ROUTE_PREFIX = '/x-english-reading'
-const PYTHON = process.platform === 'win32' ? 'python' : 'python3'
+// Try several interpreters: python3 is absent on some Windows installs and
+// "python" is absent on some Linux/macOS ones.
+const PYTHONS = process.platform === 'win32' ? ['python', 'py', 'python3'] : ['python3', 'python']
 const BOOT_REPORT = '/tmp/english-reading-boot.json'
 const EXT_TEXT = ['txt', 'md', 'markdown', 'text', 'csv']
 const EXT_IMAGE = ['png', 'jpg', 'jpeg', 'webp', 'gif']

@@ -40,6 +40,7 @@ window.__ModuleLoader__.load({
       elapsed: '已用时',
       note: '支持 txt、md、Word、PDF（含扫描件）与图片；扫描件会逐页转成图片交给模型识读。',
       empty: '先粘贴英文，或拖入一个文本文件。',
+      emptyList: '这里还没有内容',
       fileLoaded: '文件已读入',
       unsupportedFile: '不支持这个格式，目前支持 txt / md / docx / pdf。',
       readFailed: '读取文件失败。',
@@ -54,6 +55,22 @@ window.__ModuleLoader__.load({
       ready: '分析完成',
       paged: '已下载',
       stop: '已停止',
+      storage: '本地存储',
+      storageNone: '未选择文件夹',
+      storageReady: '已连接',
+      pickFolder: '选择文件夹',
+      pickFolderHint: '选择一个本地文件夹，历史与收藏会以 HTML 文件保存在那里，不上传任何内容。',
+      history: '历史',
+      favorites: '收藏',
+      open: '打开',
+      remove: '删除',
+      favorite: '收藏',
+      favorited: '已收藏',
+      savedHistory: '已存入历史',
+      storageUnsupported: '当前环境不支持选择文件夹，历史与收藏仅存在于本标签页',
+      storageDenied: '没有获得写入权限',
+      savedFav: '已收藏',
+      removedFav: '已取消收藏',
     }
 
     const TEXT_EN = {
@@ -67,6 +84,7 @@ window.__ModuleLoader__.load({
       elapsed: 'elapsed',
       note: 'Accepts txt, md, Word, PDF (scans included) and images; scanned pages are rendered and read by the model.',
       empty: 'Paste the English first, or drop a text file.',
+      emptyList: 'Nothing here yet',
       fileLoaded: 'File loaded',
       unsupportedFile: 'Unsupported format — txt / md / docx / pdf only.',
       readFailed: 'Could not read that file.',
@@ -81,6 +99,22 @@ window.__ModuleLoader__.load({
       ready: 'Done',
       paged: 'Downloaded',
       stop: 'Stopped',
+      storage: 'Local storage',
+      storageNone: 'No folder selected',
+      storageReady: 'Connected',
+      pickFolder: 'Choose folder',
+      pickFolderHint: 'Pick a local folder; history and favourites are saved there as HTML files. Nothing is uploaded.',
+      history: 'History',
+      favorites: 'Favourites',
+      open: 'Open',
+      remove: 'Remove',
+      favorite: 'Favourite',
+      favorited: 'Saved',
+      savedHistory: 'Saved to history',
+      storageUnsupported: 'This environment cannot pick a folder; history stays in this tab only',
+      storageDenied: 'Write permission was not granted',
+      savedFav: 'Saved to favourites',
+      removedFav: 'Removed from favourites',
     }
 
     const styles = {
@@ -246,6 +280,9 @@ window.__ModuleLoader__.load({
       )
     }
 
+    const escapeHtml = (text) =>
+      String(text).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+
     /** Pull a short Chinese topic out of the rendered document for the filename. */
     function topicOf(fragment) {
       const flat = (value) => String(value).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
@@ -290,6 +327,75 @@ window.__ModuleLoader__.load({
       )
     }
 
+    // Local storage: the user picks a folder once; results are written there as
+    // plain HTML files. The directory handle lives in IndexedDB so the choice
+    // survives a reload. Nothing leaves the machine.
+    const DB_NAME = 'era-storage'
+    const STORE = 'handles'
+    const ROOT_DIR = 'ERA-英语阅读分析'
+
+    const idb = () =>
+      new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 1)
+        request.onupgradeneeded = () => request.result.createObjectStore(STORE)
+        request.onsuccess = () => resolve(request.result)
+        request.onerror = () => reject(request.error)
+      })
+
+    const idbGet = async (key) => {
+      const db = await idb()
+      return new Promise((resolve, reject) => {
+        const request = db.transaction(STORE, 'readonly').objectStore(STORE).get(key)
+        request.onsuccess = () => resolve(request.result)
+        request.onerror = () => reject(request.error)
+      })
+    }
+
+    const idbSet = async (key, value) => {
+      const db = await idb()
+      return new Promise((resolve, reject) => {
+        const request = db.transaction(STORE, 'readwrite').objectStore(STORE).put(value, key)
+        request.onsuccess = () => resolve()
+        request.onerror = () => reject(request.error)
+      })
+    }
+
+    const canPickFolder = () => typeof window !== 'undefined' && 'showDirectoryPicker' in window
+
+    const ensurePermission = async (handle) => {
+      if (!handle) return false
+      const opts = { mode: 'readwrite' }
+      if ((await handle.queryPermission(opts)) === 'granted') return true
+      return (await handle.requestPermission(opts)) === 'granted'
+    }
+
+    const subdir = async (root, name) => root.getDirectoryHandle(name, { create: true })
+
+    const listFiles = async (dir) => {
+      const out = []
+      for await (const [name, handle] of dir.entries()) {
+        if (handle.kind !== 'file' || !name.endsWith('.html')) continue
+        const file = await handle.getFile()
+        out.push({ name, size: file.size, modified: file.lastModified })
+      }
+      return out.sort((a, b) => b.modified - a.modified)
+    }
+
+    const writeFile = async (dir, name, text) => {
+      const handle = await dir.getFileHandle(name, { create: true })
+      const writable = await handle.createWritable()
+      await writable.write(text)
+      await writable.close()
+    }
+
+    const stamp = () => {
+      const d = new Date()
+      const pad = (n) => String(n).padStart(2, '0')
+      return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`
+    }
+
+    const safeName = (text) => String(text || 'untitled').replace(/[\\/:*?"<>|\s]+/g, '-').slice(0, 40)
+
     function Panel({ locale }) {
       const zh = locale !== 'en'
       const t = (key) => (zh ? TEXT_ZH : TEXT_EN)[key] || key
@@ -302,6 +408,7 @@ window.__ModuleLoader__.load({
       const [fragment, setFragment] = React.useState('')
       const [fonts, setFonts] = React.useState('')
       const [docCss, setDocCss] = React.useState('')
+      const [rawCss, setRawCss] = React.useState('')
       const [pct, setPct] = React.useState(0)
       const [seconds, setSeconds] = React.useState(0)
       const [status, setStatus] = React.useState(null)
@@ -320,6 +427,108 @@ window.__ModuleLoader__.load({
         [],
       )
 
+      const refreshLists = React.useCallback(async (handle) => {
+        const target = handle || dirHandle
+        if (!target) return
+        try {
+          const root = await subdir(target, ROOT_DIR)
+          setHist(await listFiles(await subdir(root, 'history')))
+          setFavs(await listFiles(await subdir(root, 'favorites')))
+        } catch {
+          /* folder may have moved */
+        }
+      }, [dirHandle])
+
+      React.useEffect(() => {
+        let alive = true
+        ;(async () => {
+          if (!canPickFolder()) return
+          try {
+            const saved = await idbGet('dir')
+            if (!saved) return
+            const ok = await ensurePermission(saved)
+            if (!alive || !ok) return
+            setDirHandle(saved)
+            await refreshLists(saved)
+          } catch {
+            /* ignore */
+          }
+        })()
+        return () => {
+          alive = false
+        }
+      }, [refreshLists])
+
+      const chooseFolder = async () => {
+        if (!canPickFolder()) {
+          setStoreNote({ ok: false, text: t('storageUnsupported') })
+          return
+        }
+        try {
+          const handle = await window.showDirectoryPicker({ mode: 'readwrite', id: 'era-store' })
+          const ok = await ensurePermission(handle)
+          if (!ok) {
+            setStoreNote({ ok: false, text: t('storageDenied') })
+            return
+          }
+          await idbSet('dir', handle)
+          setDirHandle(handle)
+          await refreshLists(handle)
+          setStoreNote({ ok: true, text: t('storageReady') })
+        } catch {
+          /* user cancelled */
+        }
+      }
+
+      const persist = async (kind, html, topic) => {
+        if (!dirHandle) return false
+        try {
+          const root = await subdir(dirHandle, ROOT_DIR)
+          const dir = await subdir(root, kind)
+          await writeFile(dir, `${stamp()}-${safeName(topic)}.html`, html)
+          if (kind === 'history') {
+            const files = await listFiles(dir)
+            for (const extra of files.slice(10)) {
+              await dir.removeEntry(extra.name).catch(() => {})
+            }
+          }
+          await refreshLists(dirHandle)
+          return true
+        } catch {
+          return false
+        }
+      }
+
+      const openSaved = async (kind, name) => {
+        try {
+          const root = await subdir(dirHandle, ROOT_DIR)
+          const dir = await subdir(root, kind)
+          const file = await (await dir.getFileHandle(name)).getFile()
+          const text = await file.text()
+          const body = /<body[^>]*>([\s\S]*)<\/body>/i.exec(text)
+          setFragment(body ? body[1] : text)
+          setPhase('result')
+          setPanel(null)
+        } catch {
+          setStoreNote({ ok: false, text: t('readFailed') })
+        }
+      }
+
+      const removeSaved = async (kind, name) => {
+        try {
+          const root = await subdir(dirHandle, ROOT_DIR)
+          await (await subdir(root, kind)).removeEntry(name)
+          await refreshLists(dirHandle)
+        } catch {
+          /* ignore */
+        }
+      }
+
+      const addFavorite = async () => {
+        const ok = await persist('favorites', documentFor(fragment, rawCss), topicOf(fragment))
+        setStoreNote(ok ? { ok: true, text: t('savedFav') } : { ok: false, text: t('storageNone') })
+      }
+
       const loadCss = React.useCallback(async () => {
         if (docCss) return
         try {
@@ -327,6 +536,7 @@ window.__ModuleLoader__.load({
           const raw = await response.text()
           const faces = (raw.match(/@font-face\{[\s\S]*?\}\s*/g) || []).join('\n')
           setFonts(faces)
+          setRawCss(raw)
           setDocCss(toShadowCss(raw.replace(/@font-face\{[\s\S]*?\}\s*/g, '')))
         } catch {
           setDocCss('')
@@ -353,7 +563,9 @@ window.__ModuleLoader__.load({
           setSeconds(Math.round(elapsed))
           const byChars = accRef.current.length / expectedRef.current
           const byTime = (1 - Math.exp(-elapsed / 38)) * 0.92
-          setPct(Math.min(96, Math.round(Math.max(byChars, byTime) * 100)))
+          const next = Math.min(96, Math.round(Math.max(byChars, byTime) * 100))
+          // Never go backwards: the estimate can dip as the expected size settles.
+          setPct((prev) => Math.max(prev, next))
         }, 500)
         return () => clearInterval(timer)
       }, [phase])
@@ -414,7 +626,7 @@ window.__ModuleLoader__.load({
         startRef.current = Date.now()
         expectedRef.current = Math.max(1500, Math.min(22000, material.length * 4.2))
         setFragment('')
-        setPct(2)
+        setPct(1)
         setSeconds(0)
         setStatus(null)
         setPhase('running')
@@ -469,7 +681,9 @@ window.__ModuleLoader__.load({
           setFragment(accRef.current)
           setPct(100)
           setPhase('result')
-          setStatus({ ok: true, text: t('ready') })
+          const topic = topicOf(accRef.current)
+          const saved = await persist('history', documentFor(accRef.current, rawCss), topic)
+          setStatus({ ok: true, text: saved ? `${t('ready')} · ${t('savedHistory')}` : t('ready') })
         } catch (error) {
           if (error && error.name === 'AbortError') {
             setStatus({ ok: false, text: t('stop') })
@@ -493,7 +707,8 @@ window.__ModuleLoader__.load({
           })
           if (!response.ok) {
             const detail = await response.json().catch(() => ({}))
-            throw new Error(detail.error || `HTTP ${response.status}`)
+            const extra = detail.detail ? ` — ${String(detail.detail).slice(0, 200)}` : ''
+            throw new Error(`${detail.error || `HTTP ${response.status}`}${extra}`)
           }
           const blob = await response.blob()
           const url = URL.createObjectURL(blob)
@@ -524,6 +739,25 @@ window.__ModuleLoader__.load({
 
           h('h1', { style: styles.title }, t('title')),
           h('p', { style: styles.subtitle }, t('subtitle')),
+
+          h(
+            'div',
+            { style: styles.storeBar },
+            h('span', null, `${t('storage')}：${dirHandle ? t('storageReady') : t('storageNone')}`),
+            h('button', { type: 'button', style: styles.storeBtn, onClick: chooseFolder }, t('pickFolder')),
+            h(
+              'button',
+              { type: 'button', style: styles.storeBtn, onClick: () => setPanel('history') },
+              `${t('history')}${hist.length ? ` (${hist.length})` : ''}`,
+            ),
+            h(
+              'button',
+              { type: 'button', style: styles.storeBtn, onClick: () => setPanel('favorites') },
+              `${t('favorites')}${favs.length ? ` (${favs.length})` : ''}`,
+            ),
+            storeNote ? h('span', { style: storeNote.ok ? styles.status : styles.statusError }, storeNote.text) : null,
+            !dirHandle ? h('span', { style: { opacity: 0.75 } }, t('pickFolderHint')) : null,
+          ),
 
           busy
             ? h(
@@ -578,8 +812,8 @@ window.__ModuleLoader__.load({
                     'span',
                     { style: { display: 'flex', gap: 14 } },
                     h(
-                      'button',
-                      { type: 'button', style: styles.linkButton, onClick: () => fileRef.current && fileRef.current.click() },
+                      'label',
+                      { htmlFor: 'era-file-input', style: { ...styles.linkButton, cursor: 'pointer' } },
                       t('pickFile'),
                     ),
                     text
@@ -638,7 +872,47 @@ window.__ModuleLoader__.load({
           ),
 
           phase === 'input' ? h('p', { style: styles.note }, t('note')) : null,
+
+          panel
+            ? h(
+                'div',
+                { style: styles.overlay, onClick: () => setPanel(null) },
+                h(
+                  'div',
+                  { style: styles.overlayCard, onClick: (event) => event.stopPropagation() },
+                  h('h2', { style: { margin: '0 0 10px', fontSize: 15, fontFamily: C.head } },
+                    panel === 'history' ? t('history') : t('favorites')),
+                  (panel === 'history' ? hist : favs).length === 0
+                    ? h('p', { style: { fontSize: 13, color: C.muted } }, t('emptyList'))
+                    : (panel === 'history' ? hist : favs).map((item) =>
+                        h(
+                          'div',
+                          { key: item.name, style: styles.listRow },
+                          h('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } },
+                            item.name.replace(/^\d{8}-\d{6}-/, '').replace(/\.html$/, '')),
+                          h(
+                            'span',
+                            { style: { display: 'flex', gap: 8, flexShrink: 0 } },
+                            h('button', { type: 'button', style: styles.storeBtn, onClick: () => openSaved(panel, item.name) }, t('open')),
+                            h('button', { type: 'button', style: styles.storeBtn, onClick: () => removeSaved(panel, item.name) }, t('remove')),
+                          ),
+                        ),
+                      ),
+                  h('div', { style: { marginTop: 12, textAlign: 'right' } },
+                    h('button', { type: 'button', style: styles.storeBtn, onClick: () => setPanel(null) }, '×')),
+                ),
+              )
+            : null,
         ),
+      )
+    }
+
+    function documentFor(fragment, css) {
+      return (
+        '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">' +
+        `<title>${escapeHtml(topicOf(fragment))}</title>` +
+        `<style>${css || ''}</style></head>` +
+        `<body>${sanitize(fragment)}</body></html>`
       )
     }
 

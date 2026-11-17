@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.7.0 — 2026-11-17
+
+- **Local history and favourites.** Pick a folder once; every finished analysis is
+  written there as a standalone HTML file (with the print stylesheet inline), the
+  last 10 are kept, and anything starred is kept indefinitely. The folder handle
+  is remembered in IndexedDB; nothing is uploaded.
+- Fixed: "Choose file" did nothing — a hidden input clicked from JS is blocked in
+  this shell, so the button is now a native `<label>` bound to the input.
+- Fixed: the progress bar could move backwards (the time estimate dipped below
+  the initial 2%); it is monotonic now.
+- Fixed: PDF failures showed a bare "渲染失败". The client now shows the server's
+  detail, and the host tries `python3`, `python` and `py` instead of one name.
+
 ## 1.6.3 — 2026-11-17
 
 - **Security fix**, reported by the awesome-dsh-plugin reviewer: the plugin's
