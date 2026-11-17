@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.7.2 — 2026-11-17
+
+- **Fixed a blank panel** introduced in 1.7.0: the storage state hooks and five
+  style keys were referenced but never declared, so the component threw on its
+  first render and the slot stayed empty.
+- Added `tests/render-smoke.mjs`, which renders the panel against a stub React and
+  fails when a `styles.*` or `t('…')` key is missing — both were silent failures
+  that a syntax check cannot catch. Wired into the cross-platform workflow.
+
 ## 1.7.1 — 2026-11-17
 
 - History and favourites entries can now be downloaded straight to PDF from the

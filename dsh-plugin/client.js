@@ -241,6 +241,55 @@ window.__ModuleLoader__.load({
         transition: 'width 320ms ease',
       },
       docHost: { display: 'block', marginTop: 4 },
+      storeBar: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        flexWrap: 'wrap',
+        fontSize: 12,
+        color: C.muted,
+        fontFamily: C.head,
+        marginTop: 10,
+      },
+      storeBtn: {
+        border: `1px solid ${C.line}`,
+        background: C.paper2,
+        color: C.ink,
+        borderRadius: 6,
+        padding: '4px 10px',
+        fontSize: 12,
+        cursor: 'pointer',
+        fontFamily: C.head,
+      },
+      overlay: {
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(47,38,32,.35)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 20,
+      },
+      overlayCard: {
+        width: 'min(560px, 90vw)',
+        maxHeight: '70vh',
+        overflowY: 'auto',
+        background: C.paper2,
+        border: `1px solid ${C.line}`,
+        borderRadius: 12,
+        padding: '18px 20px',
+        boxShadow: '0 12px 40px rgba(47,38,32,.25)',
+        fontFamily: C.head,
+      },
+      listRow: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: 10,
+        padding: '7px 0',
+        borderBottom: `1px solid ${C.line}`,
+        fontSize: 12.5,
+      },
     }
 
     // The owner's own artwork, mirrored verbatim: same paths, stroke width,
@@ -412,6 +461,12 @@ window.__ModuleLoader__.load({
       const [pct, setPct] = React.useState(0)
       const [seconds, setSeconds] = React.useState(0)
       const [status, setStatus] = React.useState(null)
+      const [dirHandle, setDirHandle] = React.useState(null)
+      const [hist, setHist] = React.useState([])
+      const [favs, setFavs] = React.useState([])
+      const [panel, setPanel] = React.useState(null)
+      const [storeNote, setStoreNote] = React.useState(null)
+      const [pdfTitle, setPdfTitle] = React.useState('')
 
       const abortRef = React.useRef(null)
       const fileRef = React.useRef(null)

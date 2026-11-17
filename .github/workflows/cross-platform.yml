@@ -39,6 +39,9 @@ jobs:
         shell: bash
         run: python scripts/render_pdf.py --check
 
+      - name: Render the panel against a stub React
+        run: node tests/render-smoke.mjs
+
       - name: Engine dispatch unit tests
         shell: bash
         run: python tests/test_engines.py
