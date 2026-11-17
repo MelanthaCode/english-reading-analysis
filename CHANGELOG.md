@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.8.0 — 2026-11-17
+
+- **File and folder picking now goes through DSH's own native picker.** This shell
+  blocks the browser's file dialogs, so "choose file" could never open one; the
+  panel now asks the Host to pick a folder and lists the documents inside it.
+- Storage moved to the Host as well: the folder path is sent once, and history,
+  favourites, reads and deletes are Host routes. No FileSystemHandle, no
+  IndexedDB, and it works in any shell.
+- Fixed: `webServer.getOrigin` is not present on every server implementation — an
+  unguarded call aborted the whole route registration.
+
 ## 1.7.2 — 2026-11-17
 
 - **Fixed a blank panel** introduced in 1.7.0: the storage state hooks and five

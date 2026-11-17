@@ -67,7 +67,8 @@ window.__ModuleLoader__.load({
       favorite: '收藏',
       favorited: '已收藏',
       savedHistory: '已存入历史',
-      storageUnsupported: '当前环境不支持选择文件夹，历史与收藏仅存在于本标签页',
+      storageUnsupported: '当前环境不支持选择文件夹',
+      emptyFolder: '这个文件夹里没有支持的文档',
       storageDenied: '没有获得写入权限',
       savedFav: '已收藏',
       removedFav: '已取消收藏',
@@ -111,7 +112,8 @@ window.__ModuleLoader__.load({
       favorite: 'Favourite',
       favorited: 'Saved',
       savedHistory: 'Saved to history',
-      storageUnsupported: 'This environment cannot pick a folder; history stays in this tab only',
+      storageUnsupported: 'This environment cannot pick a folder',
+      emptyFolder: 'No supported documents in that folder',
       storageDenied: 'Write permission was not granted',
       savedFav: 'Saved to favourites',
       removedFav: 'Removed from favourites',
@@ -376,65 +378,29 @@ window.__ModuleLoader__.load({
       )
     }
 
-    // Local storage: the user picks a folder once; results are written there as
-    // plain HTML files. The directory handle lives in IndexedDB so the choice
-    // survives a reload. Nothing leaves the machine.
-    const DB_NAME = 'era-storage'
-    const STORE = 'handles'
-    const ROOT_DIR = 'ERA-英语阅读分析'
-
-    const idb = () =>
-      new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, 1)
-        request.onupgradeneeded = () => request.result.createObjectStore(STORE)
-        request.onsuccess = () => resolve(request.result)
-        request.onerror = () => reject(request.error)
-      })
-
-    const idbGet = async (key) => {
-      const db = await idb()
-      return new Promise((resolve, reject) => {
-        const request = db.transaction(STORE, 'readonly').objectStore(STORE).get(key)
-        request.onsuccess = () => resolve(request.result)
-        request.onerror = () => reject(request.error)
-      })
-    }
-
-    const idbSet = async (key, value) => {
-      const db = await idb()
-      return new Promise((resolve, reject) => {
-        const request = db.transaction(STORE, 'readwrite').objectStore(STORE).put(value, key)
-        request.onsuccess = () => resolve()
-        request.onerror = () => reject(request.error)
-      })
-    }
-
-    const canPickFolder = () => typeof window !== 'undefined' && 'showDirectoryPicker' in window
-
-    const ensurePermission = async (handle) => {
-      if (!handle) return false
-      const opts = { mode: 'readwrite' }
-      if ((await handle.queryPermission(opts)) === 'granted') return true
-      return (await handle.requestPermission(opts)) === 'granted'
-    }
-
-    const subdir = async (root, name) => root.getDirectoryHandle(name, { create: true })
-
-    const listFiles = async (dir) => {
-      const out = []
-      for await (const [name, handle] of dir.entries()) {
-        if (handle.kind !== 'file' || !name.endsWith('.html')) continue
-        const file = await handle.getFile()
-        out.push({ name, size: file.size, modified: file.lastModified })
+    // Local storage lives on the Host: this shell blocks the browser's file
+    // dialogs, so the folder is chosen through DSH's own picker and every read or
+    // write goes through an HTTP route instead of a FileSystemHandle.
+    const pickDir = async () => {
+      const ws = appContext && (appContext.uiWorkspace || (appContext.get && appContext.get('uiWorkspace')))
+      if (ws && typeof ws.pickDirectory === 'function') {
+        try {
+          return await ws.pickDirectory()
+        } catch {
+          return null
+        }
       }
-      return out.sort((a, b) => b.modified - a.modified)
+      return null
     }
 
-    const writeFile = async (dir, name, text) => {
-      const handle = await dir.getFileHandle(name, { create: true })
-      const writable = await handle.createWritable()
-      await writable.write(text)
-      await writable.close()
+    const postJson = async (path, body) => {
+      const response = await fetch(`${API}${path}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body || {}),
+      })
+      const data = await response.json().catch(() => ({}))
+      return { ok: response.ok, status: response.status, data }
     }
 
     const stamp = () => {
@@ -461,7 +427,8 @@ window.__ModuleLoader__.load({
       const [pct, setPct] = React.useState(0)
       const [seconds, setSeconds] = React.useState(0)
       const [status, setStatus] = React.useState(null)
-      const [dirHandle, setDirHandle] = React.useState(null)
+      const [storeDir, setStoreDir] = React.useState(null)
+      const [fileList, setFileList] = React.useState([])
       const [hist, setHist] = React.useState([])
       const [favs, setFavs] = React.useState([])
       const [panel, setPanel] = React.useState(null)
@@ -482,128 +449,121 @@ window.__ModuleLoader__.load({
         [],
       )
 
-      const refreshLists = React.useCallback(async (handle) => {
-        const target = handle || dirHandle
-        if (!target) return
-        try {
-          const root = await subdir(target, ROOT_DIR)
-          setHist(await listFiles(await subdir(root, 'history')))
-          setFavs(await listFiles(await subdir(root, 'favorites')))
-        } catch {
-          /* folder may have moved */
-        }
-      }, [dirHandle])
+      const refreshLists = React.useCallback(async () => {
+        const { ok, data } = await postJson('/store/list')
+        if (!ok) return
+        setStoreDir(data.dir || null)
+        setHist(data.history || [])
+        setFavs(data.favorites || [])
+      }, [])
 
       React.useEffect(() => {
-        let alive = true
-        ;(async () => {
-          if (!canPickFolder()) return
-          try {
-            const saved = await idbGet('dir')
-            if (!saved) return
-            const ok = await ensurePermission(saved)
-            if (!alive || !ok) return
-            setDirHandle(saved)
-            await refreshLists(saved)
-          } catch {
-            /* ignore */
-          }
-        })()
-        return () => {
-          alive = false
-        }
+        refreshLists()
       }, [refreshLists])
 
       const chooseFolder = async () => {
-        if (!canPickFolder()) {
-          setStoreNote({ ok: false, text: t('storageUnsupported') })
+        const dir = await pickDir()
+        if (!dir) return
+        const { ok, data } = await postJson('/store/config', { dir })
+        if (!ok) {
+          setStoreNote({ ok: false, text: data.error || t('readFailed') })
           return
         }
-        try {
-          const handle = await window.showDirectoryPicker({ mode: 'readwrite', id: 'era-store' })
-          const ok = await ensurePermission(handle)
-          if (!ok) {
-            setStoreNote({ ok: false, text: t('storageDenied') })
-            return
-          }
-          await idbSet('dir', handle)
-          setDirHandle(handle)
-          await refreshLists(handle)
-          setStoreNote({ ok: true, text: t('storageReady') })
-        } catch {
-          /* user cancelled */
-        }
+        setStoreDir(data.dir)
+        await refreshLists()
+        setStoreNote({ ok: true, text: data.dir })
       }
 
       const persist = async (kind, html, topic) => {
-        if (!dirHandle) return false
-        try {
-          const root = await subdir(dirHandle, ROOT_DIR)
-          const dir = await subdir(root, kind)
-          await writeFile(dir, `${stamp()}-${safeName(topic)}.html`, html)
-          if (kind === 'history') {
-            const files = await listFiles(dir)
-            for (const extra of files.slice(10)) {
-              await dir.removeEntry(extra.name).catch(() => {})
-            }
-          }
-          await refreshLists(dirHandle)
-          return true
-        } catch {
-          return false
-        }
+        if (!storeDir) return false
+        const name = `${stamp()}-${safeName(topic)}.html`
+        const { ok } = await postJson('/store/write', { kind, name, html })
+        if (ok) await refreshLists()
+        return ok
+      }
+
+      const bodyOf = (html) => {
+        const m = /<body[^>]*>([\s\S]*)<\/body>/i.exec(String(html || ''))
+        return m ? m[1] : String(html || '')
       }
 
       const readSaved = async (kind, name) => {
-        const root = await subdir(dirHandle, ROOT_DIR)
-        const dir = await subdir(root, kind)
-        const text = await (await dir.getFileHandle(name)).getFile().then((file) => file.text())
-        const body = /<body[^>]*>([\s\S]*)<\/body>/i.exec(text)
-        return body ? body[1] : text
+        const { ok, data } = await postJson('/store/read', { kind, name })
+        if (!ok) throw new Error(data.error || 'read failed')
+        return bodyOf(data.html)
       }
 
       const openSaved = async (kind, name) => {
         try {
-          if (!(await ensurePermission(dirHandle))) {
-            setStoreNote({ ok: false, text: t('storageDenied') })
-            return
-          }
           setFragment(await readSaved(kind, name))
           setPdfTitle(name.replace(/^\d{8}-\d{6}-/, '').replace(/\.html$/, ''))
           setPhase('result')
           setPanel(null)
           setStatus({ ok: true, text: t('ready') })
-        } catch {
-          setStoreNote({ ok: false, text: t('readFailed') })
+        } catch (error) {
+          setStoreNote({ ok: false, text: String(error.message || error) })
         }
       }
 
       const downloadSaved = async (kind, name) => {
         try {
-          if (!(await ensurePermission(dirHandle))) {
-            setStoreNote({ ok: false, text: t('storageDenied') })
-            return
-          }
           const topic = name.replace(/^\d{8}-\d{6}-/, '').replace(/\.html$/, '')
           await renderPdf(await readSaved(kind, name), `ERA_${topic}`)
-        } catch {
-          setStoreNote({ ok: false, text: t('readFailed') })
+        } catch (error) {
+          setStoreNote({ ok: false, text: String(error.message || error) })
         }
       }
 
       const removeSaved = async (kind, name) => {
-        try {
-          const root = await subdir(dirHandle, ROOT_DIR)
-          await (await subdir(root, kind)).removeEntry(name)
-          await refreshLists(dirHandle)
-        } catch {
-          /* ignore */
-        }
+        await postJson('/store/remove', { kind, name })
+        await refreshLists()
       }
 
       const addFavorite = async () => {
         const ok = await persist('favorites', documentFor(fragment, rawCss), topicOf(fragment))
         setStoreNote(ok ? { ok: true, text: t('savedFav') } : { ok: false, text: t('storageNone') })
+      }
+
+      const applyExtract = (data, name) => {
+        if (data.images && data.images.length) {
+          setImages(data.images)
+          setText(data.text || '')
+          setFileName(name || '')
+          setStatus({ ok: true, text: `${name} · ${data.images.length} ${t('pagesLoaded')}` })
+        } else {
+          setImages([])
+          setText(data.text || '')
+          setFileName(name || '')
+          setStatus({ ok: true, text: `${name} · ${(data.text || '').length} ${t('charsReady')}` })
+        }
+      }
+
+      /** Pick a folder, then one document inside it: the shell has no file dialog. */
+      const chooseInputFile = async () => {
+        const dir = await pickDir()
+        if (!dir) return
+        const { ok, data } = await postJson('/list-folder', { dir })
+        if (!ok) {
+          setStatus({ ok: false, text: data.error || t('readFailed') })
+          return
+        }
+        if (!data.files || !data.files.length) {
+          setStatus({ ok: false, text: t('emptyFolder') })
+          return
+        }
+        setFileList(data.files)
+        setPanel('files')
+      }
+
+      const loadPickedFile = async (file) => {
+        setPanel(null)
+        setStatus({ ok: true, text: `${t('extracting')} ${file.name}…` })
+        const { ok, data } = await postJson('/extract-path', { path: file.path })
+        if (!ok || data.error) {
+          setStatus({ ok: false, text: data.error || t('readFailed') })
+          return
+        }
+        applyExtract(data, file.name)
       }
 
       const loadCss = React.useCallback(async () => {
@@ -668,23 +628,7 @@ window.__ModuleLoader__.load({
             setStatus({ ok: false, text: body.error || `HTTP ${response.status}` })
             return
           }
-          if (body.images && body.images.length) {
-            setImages(body.images)
-            setText(body.text || '')
-            setFileName(file.name || '')
-            setStatus({
-              ok: true,
-              text: `${file.name} · ${body.images.length} ${t('pagesLoaded')}`,
-            })
-          } else {
-            setImages([])
-            setText(body.text || '')
-            setFileName(file.name || '')
-            setStatus({
-              ok: true,
-              text: `${file.name} · ${(body.text || '').length} ${t('charsReady')}`,
-            })
-          }
+          applyExtract(body, file.name)
         } catch (error) {
           setStatus({ ok: false, text: `${t('readFailed')} ${(error && error.message) || error}` })
         }
@@ -822,7 +766,7 @@ window.__ModuleLoader__.load({
           h(
             'div',
             { style: styles.storeBar },
-            h('span', null, `${t('storage')}：${dirHandle ? t('storageReady') : t('storageNone')}`),
+            h('span', null, `${t('storage')}：${storeDir ? t('storageReady') : t('storageNone')}`),
             h('button', { type: 'button', style: styles.storeBtn, onClick: chooseFolder }, t('pickFolder')),
             h(
               'button',
@@ -835,7 +779,7 @@ window.__ModuleLoader__.load({
               `${t('favorites')}${favs.length ? ` (${favs.length})` : ''}`,
             ),
             storeNote ? h('span', { style: storeNote.ok ? styles.status : styles.statusError }, storeNote.text) : null,
-            !dirHandle ? h('span', { style: { opacity: 0.75 } }, t('pickFolderHint')) : null,
+            !storeDir ? h('span', { style: { opacity: 0.75 } }, t('pickFolderHint')) : null,
           ),
 
           busy
@@ -891,8 +835,8 @@ window.__ModuleLoader__.load({
                     'span',
                     { style: { display: 'flex', gap: 14 } },
                     h(
-                      'label',
-                      { htmlFor: 'era-file-input', style: { ...styles.linkButton, cursor: 'pointer' } },
+                      'button',
+                      { type: 'button', style: styles.linkButton, onClick: chooseInputFile },
                       t('pickFile'),
                     ),
                     text
@@ -960,9 +904,20 @@ window.__ModuleLoader__.load({
                   'div',
                   { style: styles.overlayCard, onClick: (event) => event.stopPropagation() },
                   h('h2', { style: { margin: '0 0 10px', fontSize: 15, fontFamily: C.head } },
-                    panel === 'history' ? t('history') : t('favorites')),
-                  (panel === 'history' ? hist : favs).length === 0
+                    panel === 'history' ? t('history') : panel === 'favorites' ? t('favorites') : t('pickFile')),
+                  panel === 'files'
+                    ? fileList.map((file) =>
+                        h(
+                          'div',
+                          { key: file.path, style: styles.listRow },
+                          h('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, file.name),
+                          h('button', { type: 'button', style: styles.storeBtn, onClick: () => loadPickedFile(file) }, t('open')),
+                        ),
+                      )
+                    : (panel === 'history' ? hist : favs).length === 0
                     ? h('p', { style: { fontSize: 13, color: C.muted } }, t('emptyList'))
+                    : panel === 'files'
+                    ? null
                     : (panel === 'history' ? hist : favs).map((item) =>
                         h(
                           'div',
@@ -1009,10 +964,14 @@ window.__ModuleLoader__.load({
       }
     }
 
+    // Kept so panel callbacks can reach Client services (the native folder picker).
+    let appContext = null
+
     return {
-      inject: ['slots', 'locale'],
+      inject: ['slots', 'locale', 'uiWorkspace'],
 
       apply(context) {
+        appContext = context
         const locale = currentLocale(context)
 
         context.slots.inject('sidebar.panellist', () =>

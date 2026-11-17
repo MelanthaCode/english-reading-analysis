@@ -13,7 +13,7 @@
 
 import { spawn } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -556,30 +556,19 @@ export function apply(ctx) {
     return false
   }
 
-  const extract = async (req, res) => {
-    if (!guard(req, res)) return
-    if (req.method !== 'POST') return sendJson(res, 405, { error: 'method not allowed' })
-
-    let payload
-    try {
-      payload = JSON.parse(await readBody(req, 48 * 1024 * 1024))
-    } catch {
-      return sendJson(res, 400, { error: 'invalid JSON body' })
-    }
-
-    const name = String(payload?.name || 'file')
-    const buffer = Buffer.from(String(payload?.data || ''), 'base64')
-    if (!buffer.length) return sendJson(res, 400, { error: '空文件' })
+  /** Shared extraction: bytes in, {status, body} out. */
+  const runExtract = async (name, buffer) => {
+    if (!buffer || !buffer.length) return { status: 400, body: { error: '空文件' } }
 
     const ext = (name.toLowerCase().match(/\.([a-z0-9]+)$/) || [])[1] || ''
     if (EXT_TEXT.includes(ext)) {
-      return sendJson(res, 200, { text: buffer.toString('utf8'), kind: 'text' })
+      return { status: 200, body: { text: buffer.toString('utf8'), kind: 'text' } }
     }
     if (EXT_IMAGE.includes(ext)) {
-      return sendJson(res, 200, {
-        kind: 'image',
-        images: [{ mediaType: IMAGE_MEDIA[ext], data: buffer.toString('base64'), name }],
-      })
+      return {
+        status: 200,
+        body: { kind: 'image', images: [{ mediaType: IMAGE_MEDIA[ext], data: buffer.toString('base64'), name }] },
+      }
     }
 
     let work
@@ -587,31 +576,227 @@ export function apply(ctx) {
       work = await mkdtemp(join(tmpdir(), 'english-reading-file-'))
       if (ext === 'docx') {
         const text = await docxToText(buffer, work)
-        return sendJson(res, 200, { text: text.trim(), kind: 'docx' })
+        return { status: 200, body: { text: text.trim(), kind: 'docx' } }
       }
       if (ext === 'pdf') {
         const result = await pdfToText(buffer, work)
-        if (result.text) return sendJson(res, 200, result)
-        if (result.error) return sendJson(res, 422, result)
+        if (result.text) return { status: 200, body: result }
+        if (result.error) return { status: 422, body: result }
         const pages = []
         for (const page of result.pages.slice(0, MAX_SCAN_PAGES)) {
           pages.push({ mediaType: page.mediaType, data: (await readFile(page.path)).toString('base64') })
         }
-        return sendJson(res, 200, { kind: 'scan', images: pages, pages: pages.length })
+        return { status: 200, body: { kind: 'scan', images: pages, pages: pages.length } }
       }
-      return sendJson(res, 415, {
-        error: `不支持的文件类型 .${ext}，目前支持 txt / md / csv / docx / pdf / 图片`,
-      })
+      return {
+        status: 415,
+        body: { error: `不支持的文件类型 .${ext}，目前支持 txt / md / csv / docx / pdf / 图片` },
+      }
     } catch (error) {
-      return sendJson(res, 500, { error: String(error?.message || error) })
+      return { status: 500, body: { error: String(error?.message || error) } }
     } finally {
       if (work) await rm(work, { recursive: true, force: true })
     }
   }
 
+  // ---- local storage + file picking (the shell blocks native file dialogs) ----
+
+  let storeDir = null
+
+  const storeKindDir = (kind) =>
+    join(storeDir, 'ERA-英语阅读分析', kind === 'favorites' ? 'favorites' : 'history')
+
+  const extractRoute = async (req, res) => {
+    if (!guard(req, res)) return
+    if (req.method !== 'POST') return sendJson(res, 405, { error: 'method not allowed' })
+    let payload
+    try {
+      payload = JSON.parse(await readBody(req, 48 * 1024 * 1024))
+    } catch {
+      return sendJson(res, 400, { error: 'invalid JSON body' })
+    }
+    const name = String(payload?.name || 'file')
+    const buffer = Buffer.from(String(payload?.data || ''), 'base64')
+    const { status, body } = await runExtract(name, buffer)
+    return sendJson(res, status, body)
+  }
+
+  /** Extract a file the user picked from disk, so the browser never opens a dialog. */
+  const extractPath = async (req, res) => {
+    if (!guard(req, res)) return
+    if (req.method !== 'POST') return sendJson(res, 405, { error: 'method not allowed' })
+    let payload
+    try {
+      payload = JSON.parse(await readBody(req, 1024 * 1024))
+    } catch {
+      return sendJson(res, 400, { error: 'invalid JSON body' })
+    }
+    const path = String(payload?.path || '')
+    if (!path) return sendJson(res, 400, { error: '缺少文件路径' })
+    try {
+      const buffer = await readFile(path)
+      const { status, body } = await runExtract(path.split(/[\\/]/).pop() || 'file', buffer)
+      return sendJson(res, status, body)
+    } catch (error) {
+      return sendJson(res, 500, { error: `读取失败：${String(error?.message || error)}` })
+    }
+  }
+
+  /** List the supported documents in one folder, for the pick-a-file flow. */
+  const listFolder = async (req, res) => {
+    if (!guard(req, res)) return
+    if (req.method !== 'POST') return sendJson(res, 405, { error: 'method not allowed' })
+    let payload
+    try {
+      payload = JSON.parse(await readBody(req, 64 * 1024))
+    } catch {
+      return sendJson(res, 400, { error: 'invalid JSON body' })
+    }
+    const dir = String(payload?.dir || '')
+    if (!dir) return sendJson(res, 400, { error: '缺少目录' })
+    try {
+      const entries = await readdir(dir, { withFileTypes: true })
+      const files = entries
+        .filter((entry) => entry.isFile())
+        .map((entry) => entry.name)
+        .filter((name) => {
+          const ext = (name.toLowerCase().match(/\.([a-z0-9]+)$/) || [])[1] || ''
+          return EXT_TEXT.includes(ext) || EXT_IMAGE.includes(ext) || ext === 'docx' || ext === 'pdf'
+        })
+        .slice(0, 200)
+        .map((name) => ({ name, path: join(dir, name) }))
+      return sendJson(res, 200, { dir, files })
+    } catch (error) {
+      return sendJson(res, 500, { error: `无法读取目录：${String(error?.message || error)}` })
+    }
+  }
+
+  const storeConfig = async (req, res) => {
+    if (!guard(req, res)) return
+    if (req.method !== 'POST') return sendJson(res, 405, { error: 'method not allowed' })
+    let payload
+    try {
+      payload = JSON.parse(await readBody(req, 64 * 1024))
+    } catch {
+      return sendJson(res, 400, { error: 'invalid JSON body' })
+    }
+    const dir = String(payload?.dir || '')
+    if (!dir) return sendJson(res, 400, { error: '缺少目录' })
+    try {
+      // Assign first: storeKindDir() resolves against it.
+      storeDir = dir
+      await mkdir(storeKindDir('history'), { recursive: true })
+      await mkdir(storeKindDir('favorites'), { recursive: true })
+      return sendJson(res, 200, { ok: true, dir })
+    } catch (error) {
+      return sendJson(res, 500, { error: `无法写入该目录：${String(error?.message || error)}` })
+    }
+  }
+
+  const storeWrite = async (req, res) => {
+    if (!guard(req, res)) return
+    if (!storeDir) return sendJson(res, 409, { error: '尚未选择存储文件夹' })
+    let payload
+    try {
+      payload = JSON.parse(await readBody(req, 24 * 1024 * 1024))
+    } catch {
+      return sendJson(res, 400, { error: 'invalid JSON body' })
+    }
+    const kind = payload?.kind === 'favorites' ? 'favorites' : 'history'
+    const name = String(payload?.name || 'untitled')
+    const html = String(payload?.html || '')
+    try {
+      const dir = storeKindDir(kind)
+      await mkdir(dir, { recursive: true })
+      await writeFile(join(dir, name), html, 'utf8')
+      if (kind === 'history') {
+        const files = (await readdir(dir)).filter((file) => file.endsWith('.html'))
+        if (files.length > 10) {
+          const stats = await Promise.all(
+            files.map(async (file) => ({ file, mtime: (await stat(join(dir, file))).mtimeMs })),
+          )
+          stats.sort((a, b) => b.mtime - a.mtime)
+          for (const extra of stats.slice(10)) await rm(join(dir, extra.file), { force: true })
+        }
+      }
+      return sendJson(res, 200, { ok: true, name })
+    } catch (error) {
+      return sendJson(res, 500, { error: String(error?.message || error) })
+    }
+  }
+
+  const storeList = async (req, res) => {
+    if (!guard(req, res)) return
+    if (!storeDir) return sendJson(res, 200, { dir: null, history: [], favorites: [] })
+    const read = async (kind) => {
+      try {
+        const dir = storeKindDir(kind)
+        const files = (await readdir(dir)).filter((file) => file.endsWith('.html'))
+        const rows = await Promise.all(
+          files.map(async (file) => ({ name: file, modified: (await stat(join(dir, file))).mtimeMs })),
+        )
+        return rows.sort((a, b) => b.modified - a.modified)
+      } catch {
+        return []
+      }
+    }
+    return sendJson(res, 200, {
+      dir: storeDir,
+      history: await read('history'),
+      favorites: await read('favorites'),
+    })
+  }
+
+  const storeRead = async (req, res) => {
+    if (!guard(req, res)) return
+    if (!storeDir) return sendJson(res, 409, { error: '尚未选择存储文件夹' })
+    let payload
+    try {
+      payload = JSON.parse(await readBody(req, 256 * 1024))
+    } catch {
+      return sendJson(res, 400, { error: 'invalid JSON body' })
+    }
+    const kind = payload?.kind === 'favorites' ? 'favorites' : 'history'
+    const name = String(payload?.name || '')
+    if (!name || name.includes('/') || name.includes('\\')) return sendJson(res, 400, { error: '非法文件名' })
+    try {
+      const html = await readFile(join(storeKindDir(kind), name), 'utf8')
+      return sendJson(res, 200, { html })
+    } catch (error) {
+      return sendJson(res, 404, { error: String(error?.message || error) })
+    }
+  }
+
+  const storeRemove = async (req, res) => {
+    if (!guard(req, res)) return
+    if (!storeDir) return sendJson(res, 409, { error: '尚未选择存储文件夹' })
+    let payload
+    try {
+      payload = JSON.parse(await readBody(req, 256 * 1024))
+    } catch {
+      return sendJson(res, 400, { error: 'invalid JSON body' })
+    }
+    const kind = payload?.kind === 'favorites' ? 'favorites' : 'history'
+    const name = String(payload?.name || '')
+    if (!name || name.includes('/') || name.includes('\\')) return sendJson(res, 400, { error: '非法文件名' })
+    try {
+      await rm(join(storeKindDir(kind), name), { force: true })
+      return sendJson(res, 200, { ok: true })
+    } catch (error) {
+      return sendJson(res, 500, { error: String(error?.message || error) })
+    }
+  }
+
   const ROUTES = [
     { path: `${ROUTE_PREFIX}/health`, handler: health },
-    { path: `${ROUTE_PREFIX}/extract`, handler: extract },
+    { path: `${ROUTE_PREFIX}/extract`, handler: extractRoute },
+    { path: `${ROUTE_PREFIX}/extract-path`, handler: extractPath },
+    { path: `${ROUTE_PREFIX}/list-folder`, handler: listFolder },
+    { path: `${ROUTE_PREFIX}/store/config`, handler: storeConfig },
+    { path: `${ROUTE_PREFIX}/store/write`, handler: storeWrite },
+    { path: `${ROUTE_PREFIX}/store/list`, handler: storeList },
+    { path: `${ROUTE_PREFIX}/store/read`, handler: storeRead },
+    { path: `${ROUTE_PREFIX}/store/remove`, handler: storeRemove },
     { path: `${ROUTE_PREFIX}/style.css`, handler: style },
     { path: `${ROUTE_PREFIX}/analyze`, handler: analyze },
     { path: `${ROUTE_PREFIX}/pdf`, handler: renderPdf },
@@ -619,7 +804,15 @@ export function apply(ctx) {
 
   const registerAll = (webServer, via) => {
     try {
-      expectedOrigin = webServer.getOrigin()
+      // Not every web server implementation exposes the origin; the guard falls
+      // back to comparing Origin with the Host header when this is unavailable.
+      if (typeof webServer.getOrigin === 'function') {
+        try {
+          expectedOrigin = webServer.getOrigin()
+        } catch {
+          expectedOrigin = null
+        }
+      }
       for (const route of ROUTES) {
         ctx.effect(() => webServer.register({ kind: 'exact', path: route.path, handler: route.handler }))
       }
