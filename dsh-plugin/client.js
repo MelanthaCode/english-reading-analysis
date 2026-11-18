@@ -69,6 +69,8 @@ window.__ModuleLoader__.load({
       savedHistory: '已存入历史',
       storageUnsupported: '当前环境不支持选择文件夹',
       emptyFolder: '这个文件夹里没有支持的文档',
+      staleHost: '插件已更新，请完全退出并重启 DeepSeek Harness 后再试',
+      opening: '正在打开选择框…',
       storageDenied: '没有获得写入权限',
       savedFav: '已收藏',
       removedFav: '已取消收藏',
@@ -114,6 +116,8 @@ window.__ModuleLoader__.load({
       savedHistory: 'Saved to history',
       storageUnsupported: 'This environment cannot pick a folder',
       emptyFolder: 'No supported documents in that folder',
+      staleHost: 'The plugin was updated — quit and restart DeepSeek Harness to load it',
+      opening: 'Opening the picker…',
       storageDenied: 'Write permission was not granted',
       savedFav: 'Saved to favourites',
       removedFav: 'Removed from favourites',
@@ -450,7 +454,13 @@ window.__ModuleLoader__.load({
       )
 
       const refreshLists = React.useCallback(async () => {
-        const { ok, data } = await postJson('/store/list')
+        const { ok, status, data } = await postJson('/store/list')
+        if (status === 405) {
+          // The routes were added in 1.8.0; a running Host from an older build
+          // answers 405 for unknown POST paths.
+          setStoreNote({ ok: false, text: t('staleHost') })
+          return
+        }
         if (!ok) return
         setStoreDir(data.dir || null)
         setHist(data.history || [])
@@ -462,7 +472,9 @@ window.__ModuleLoader__.load({
       }, [refreshLists])
 
       const chooseFolder = async () => {
+        setStoreNote({ ok: true, text: t('opening') })
         const dir = await pickDir()
+        if (!dir) setStoreNote(null)
         if (!dir) return
         const { ok, data } = await postJson('/store/config', { dir })
         if (!ok) {
@@ -540,7 +552,9 @@ window.__ModuleLoader__.load({
 
       /** Pick a folder, then one document inside it: the shell has no file dialog. */
       const chooseInputFile = async () => {
+        setStatus({ ok: true, text: t('opening') })
         const dir = await pickDir()
+        if (!dir) setStatus(null)
         if (!dir) return
         const { ok, data } = await postJson('/list-folder', { dir })
         if (!ok) {

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.8.1 — 2026-11-18
+
+- A running Host from an older build answers 405 for the new routes; the panel now
+  detects that and says "restart DeepSeek Harness" instead of a generic failure.
+- Choosing a folder or a file shows "opening the picker…" immediately, since the
+  native dialog can take a moment to appear.
+
 ## 1.8.0 — 2026-11-17
 
 - **File and folder picking now goes through DSH's own native picker.** This shell
