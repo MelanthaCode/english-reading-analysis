@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.10.3 — 2026-11-19
+
+- Dropping a file now reports back: the box footer shows the file name, its size
+  and the character count, and the status line says what was received, what kind
+  of file it turned out to be (text / Word / PDF text layer / scanned pages /
+  image) and how much was read. Failures name the file and its size too.
+
 ## 1.10.2 — 2026-11-19
 
 - The IMG badge uses white ink like the other three, so all four read as one set.

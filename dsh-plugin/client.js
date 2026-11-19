@@ -79,6 +79,14 @@ window.__ModuleLoader__.load({
       pickFile: '选择文件',
       dropHint: '把英文粘贴到这里，或把文件拖进这个框',
       dropNow: '松开即可导入',
+      received: '已接收',
+      parsing: '正在解析',
+      kindText: '文本',
+      kindDocx: 'Word 文档',
+      kindPdf: 'PDF（文字层）',
+      kindScan: '扫描件',
+      kindImage: '图片',
+      readFail: '读取失败',
       charsReady: '字符',
       pagesLoaded: '页图片已载入',
       failed: '失败',
@@ -133,6 +141,14 @@ window.__ModuleLoader__.load({
       pickFile: 'Choose file',
       dropHint: 'Paste the English here, or drop a file into this box',
       dropNow: 'Release to import',
+      received: 'Received',
+      parsing: 'reading',
+      kindText: 'text',
+      kindDocx: 'Word document',
+      kindPdf: 'PDF (text layer)',
+      kindScan: 'scanned pages',
+      kindImage: 'image',
+      readFail: 'Could not read',
       charsReady: 'characters',
       pagesLoaded: 'page images loaded',
       failed: 'Failed',
@@ -539,6 +555,13 @@ window.__ModuleLoader__.load({
       return { ok: response.ok, status: response.status, data }
     }
 
+    const formatBytes = (bytes) => {
+      const n = Number(bytes || 0)
+      if (n < 1024) return `${n} B`
+      if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
+      return `${(n / 1024 / 1024).toFixed(2)} MB`
+    }
+
     const stamp = () => {
       const d = new Date()
       const pad = (n) => String(n).padStart(2, '0')
@@ -553,6 +576,7 @@ window.__ModuleLoader__.load({
 
       const [text, setText] = React.useState('')
       const [fileName, setFileName] = React.useState('')
+      const [fileMeta, setFileMeta] = React.useState(null)
       const [images, setImages] = React.useState([])
       const [dragging, setDragging] = React.useState(false)
       const [phase, setPhase] = React.useState('input')
@@ -667,17 +691,27 @@ window.__ModuleLoader__.load({
         setStoreNote(ok ? { ok: true, text: t('savedFav') } : { ok: false, text: t('storageNone') })
       }
 
-      const applyExtract = (data, name) => {
+      const applyExtract = (data, name, size) => {
+        const label =
+          data.kind === 'scan'
+            ? t('kindScan')
+            : data.kind === 'image'
+            ? t('kindImage')
+            : data.kind === 'pdf'
+            ? t('kindPdf')
+            : data.kind === 'docx'
+            ? t('kindDocx')
+            : t('kindText')
+        setFileName(name || '')
+        setFileMeta(size ? { size } : null)
         if (data.images && data.images.length) {
           setImages(data.images)
           setText(data.text || '')
-          setFileName(name || '')
-          setStatus({ ok: true, text: `${name} · ${data.images.length} ${t('pagesLoaded')}` })
+          setStatus({ ok: true, text: `${name} · ${label} · ${data.images.length} ${t('pagesLoaded')}` })
         } else {
           setImages([])
           setText(data.text || '')
-          setFileName(name || '')
-          setStatus({ ok: true, text: `${name} · ${(data.text || '').length} ${t('charsReady')}` })
+          setStatus({ ok: true, text: `${name} · ${label} · ${(data.text || '').length} ${t('charsReady')}` })
         }
       }
 
@@ -943,7 +977,13 @@ window.__ModuleLoader__.load({
                 h(
                   'div',
                   { style: styles.zoneFooter },
-                  h('span', null, fileName ? `${fileName} · ${text.length}` : `${text.length} ${t('chars')}`),
+                  h(
+                    'span',
+                    { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' } },
+                    fileName
+                      ? `${fileName}${fileMeta ? ` · ${formatBytes(fileMeta.size)}` : ''} · ${text.length} ${t('chars')}`
+                      : `${text.length} ${t('chars')}`,
+                  ),
                   h(
                     'span',
                     { style: { display: 'flex', gap: 14 } },
