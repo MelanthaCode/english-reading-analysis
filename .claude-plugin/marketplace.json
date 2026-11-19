@@ -10,7 +10,7 @@
       "name": "english-reading-analysis",
       "source": "./",
       "description": "Turn English passages and exam papers into Chinese analysis: translation, answers, error analysis, long-sentence breakdown, print-ready A4 PDF.",
-      "version": "1.9.1",
+      "version": "1.9.2",
       "license": "MIT",
       "keywords": [
         "english",

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.2 — 2026-11-19
+
+- History and favourites sit side by side again, still unboxed, under the single
+  search field.
+- The folder hint now reads "把历史与收藏存放在此处" instead of explaining the file
+  format and the upload behaviour.
+
 ## 1.9.1 — 2026-11-19
 
 - History and favourites are plain lists on the page instead of boxed cards:
