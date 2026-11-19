@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.6 — 2026-11-19
+
+- Format badges are 72×64, with the badge re-centred for the taller card.
+
 ## 1.9.5 — 2026-11-19
 
 - Format badges are 72×60 now — a little taller than the previous 72×56.
