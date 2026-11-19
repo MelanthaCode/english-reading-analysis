@@ -263,6 +263,10 @@ npx skills add MelanthaCode/english-reading-analysis
 
 Melantha · [github.com/MelanthaCode](https://github.com/MelanthaCode)
 
+## 配色
+
+界面与打印样式共用一套颜色变量，取自 [Searching for Birds](https://searchingforbirds.visualcinnamon.com/)（Nadieh Bremer 的观鸟数据可视化项目）：`--primary #f9564e`、`--secondary #ffcc2d`、`--accent #23abab`、`--background #f4efe5`，另附它的"鸟种色"（northern cardinal 红、common raven 靛、sandhill crane 绿、american robin 橙、blue jay 蓝、mallard 粉、barred owl 沙、cooper's hawk 青绿）。同一批 token 同时定义在 `assets/template.html` 和 `dsh-plugin/client.js`。
+
 ## License
 
 MIT

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.10.0 — 2026-11-19
+
+- The palette now comes verbatim from searchingforbirds.visualcinnamon.com: its
+  CSS variables (`#f9564e`, `#ffcc2d`, `#23abab`, `#f4efe5`, `#e7decd`, `#28211e`,
+  `#80766b`, `#e9d3bb`) plus its per-species colours, shared by the panel and the
+  print stylesheet.
+- The IMG badge uses the site's gold with dark brown ink, which is how it treats a
+  highlight colour; the other three keep white ink.
+
 ## 1.9.6 — 2026-11-19
 
 - Format badges are 72×64, with the badge re-centred for the taller card.

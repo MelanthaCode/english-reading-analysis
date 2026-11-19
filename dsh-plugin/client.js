@@ -16,15 +16,28 @@ window.__ModuleLoader__.load({
     const API = '/x-english-reading'
 
     // Palette shared with the skill stylesheet (Searching for Birds language).
+    // Tokens from searchingforbirds.visualcinnamon.com: its CSS variables plus the
+    // per-species colours it uses for annotations.
     const C = {
-      paper: '#f4efe5',
-      paper2: '#fffdf8',
-      ink: '#2f2620',
-      muted: '#8a7a6c',
-      line: '#e4d8c4',
-      coral: '#f9564e',
-      gold: '#ffcc2d',
-      soft: '#ece2d0',
+      paper: '#f4efe5',        // --background
+      paper2: '#faf4ef',       // raised surface
+      soft: '#e7decd',         // --background-darker
+      ink: '#28211e',          // --text-primary
+      muted: '#80766b',        // --text-secondary
+      annotate: '#68594f',     // --text-annotation
+      faint: '#afa39c',        // --text-muted
+      line: '#e9d3bb',
+      coral: '#f9564e',        // --primary-color, northern cardinal
+      gold: '#ffcc2d',         // --secondary-color, bald eagle
+      teal: '#23abab',         // --accent-color
+      indigo: '#3a4178',       // common raven
+      orange: '#ff923e',       // american robin
+      green: '#98cb5f',        // sandhill crane
+      blue: '#51aade',         // blue jay
+      pink: '#ffa7b4',         // mallard
+      sand: '#ccaf91',         // barred owl
+      hawk: '#2ac7c7',         // cooper's hawk
+      brown: '#592b00',
       head: "'Jost','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',system-ui,sans-serif",
       body: "'Zilla Slab',Georgia,'Times New Roman','Songti SC',SimSun,'Noto Serif CJK SC',serif",
     }
@@ -893,7 +906,7 @@ window.__ModuleLoader__.load({
                           },
                         },
                         FORMAT_ICONS.map((item) =>
-                          h('span', { key: item.label }, docBadge(item.label, item.color, item.bg)),
+                          h('span', { key: item.label }, docBadge(item.label, item.color, item.bg, item.ink)),
                         ),
                       ),
                       h('span', null, dragging ? t('dropNow') : t('dropHint')),
@@ -991,7 +1004,7 @@ window.__ModuleLoader__.load({
     }
 
     /** A squat document card with a coloured format badge; drawn inline, no assets. */
-    const docBadge = (label, color, bg) =>
+    const docBadge = (label, color, bg, ink) =>
       h(
         'svg',
         { width: 72, height: 64, viewBox: '0 0 72 64', fill: 'none' },
@@ -1011,7 +1024,7 @@ window.__ModuleLoader__.load({
             textAnchor: 'middle',
             fontSize: 13,
             fontWeight: 700,
-            fill: '#fff',
+            fill: ink || '#ffffff',
             fontFamily: 'Jost, ui-sans-serif, system-ui, sans-serif',
             letterSpacing: 0.4,
           },
@@ -1020,10 +1033,11 @@ window.__ModuleLoader__.load({
       )
 
     const FORMAT_ICONS = [
-      { label: 'PDF', color: '#f9564e', bg: '#fff6f4' },
-      { label: 'DOCX', color: '#3a4178', bg: '#f6f6fb' },
-      { label: 'MD', color: '#23abab', bg: '#f4fbfb' },
-      { label: 'IMG', color: '#d99b18', bg: '#fffaef' },
+      { label: 'PDF', color: '#f9564e', bg: '#fff6f4', ink: '#ffffff' },
+      { label: 'DOCX', color: '#3a4178', bg: '#f6f6fb', ink: '#ffffff' },
+      { label: 'MD', color: '#23abab', bg: '#f4fbfb', ink: '#ffffff' },
+      // Gold is a highlight colour on the reference site, so it carries dark ink.
+      { label: 'IMG', color: '#ffcc2d', bg: '#fffaef', ink: '#592b00' },
     ]
 
     function documentFor(fragment, css) {
