@@ -62,6 +62,7 @@ window.__ModuleLoader__.load({
       pickFolder: '选择文件夹',
       changeFolder: '更改本地文件夹',
       pickFolderHint: '选择一个本地文件夹，历史与收藏将会存放在此处',
+      changeFolderHint: '可以更改本地文件夹，历史与收藏将会存放在此处',
       history: '历史',
       searchAll: '搜索历史与收藏…',
       noMatch: '没有匹配的结果',
@@ -115,6 +116,7 @@ window.__ModuleLoader__.load({
       pickFolder: 'Choose folder',
       changeFolder: 'Change folder',
       pickFolderHint: 'Pick a local folder; history and favourites are stored there',
+      changeFolderHint: 'You can change the folder; history and favourites live there',
       history: 'History',
       searchAll: 'Search history and favourites…',
       noMatch: 'No matches',
@@ -262,6 +264,7 @@ window.__ModuleLoader__.load({
       dropHint: {
         position: 'absolute',
         inset: 0,
+        zIndex: 1,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -580,7 +583,7 @@ window.__ModuleLoader__.load({
         }
         setStoreDir(data.dir)
         await refreshLists()
-        setStoreNote({ ok: true, text: data.dir })
+        setStoreNote(null)
       }
 
       const persist = async (kind, html, topic) => {
@@ -820,7 +823,7 @@ window.__ModuleLoader__.load({
             h('button', { type: 'button', style: styles.storeBtn, onClick: chooseFolder },
               storeDir ? t('changeFolder') : t('pickFolder')),
             storeNote ? h('span', { style: storeNote.ok ? styles.status : styles.statusError }, storeNote.text) : null,
-            !storeDir ? h('span', { style: { opacity: 0.75 } }, t('pickFolderHint')) : null,
+            h('span', { style: { opacity: 0.75 } }, storeDir ? t('changeFolderHint') : t('pickFolderHint')),
           ),
 
           busy
@@ -874,6 +877,28 @@ window.__ModuleLoader__.load({
                     if (file) await readDropped(file)
                   },
                 },
+                !text
+                  ? h(
+                      'div',
+                      { style: { ...styles.dropHint, color: dragging ? C.coral : C.muted } },
+                      h(
+                        'div',
+                        {
+                          style: {
+                            display: 'flex',
+                            gap: 14,
+                            transform: dragging ? 'translateY(-3px) scale(1.04)' : 'none',
+                            transition: 'transform 200ms ease',
+                            opacity: dragging ? 1 : 0.92,
+                          },
+                        },
+                        FORMAT_ICONS.map((item) =>
+                          h('span', { key: item.label }, docBadge(item.label, item.color, item.bg)),
+                        ),
+                      ),
+                      h('span', null, dragging ? t('dropNow') : t('dropHint')),
+                    )
+                  : null,
                 h('textarea', {
                   style: styles.zoneInput,
                       value: text,
@@ -964,6 +989,42 @@ window.__ModuleLoader__.load({
         ),
       )
     }
+
+    /** A document sheet with a coloured format badge; drawn inline, no assets. */
+    const docBadge = (label, color, bg) =>
+      h(
+        'svg',
+        { width: 54, height: 68, viewBox: '0 0 54 68', fill: 'none' },
+        h('path', {
+          d: 'M9 2.5h24.5L45 14v49a3.5 3.5 0 0 1-3.5 3.5h-32A3.5 3.5 0 0 1 6 63V6a3.5 3.5 0 0 1 3-3.5z',
+          fill: bg,
+          stroke: '#cdb79b',
+          strokeWidth: 1.3,
+        }),
+        h('path', { d: 'M33.5 2.5V14H45', stroke: '#cdb79b', strokeWidth: 1.3, fill: 'none' }),
+        h('rect', { x: 5, y: 30, width: 44, height: 17, rx: 4, fill: color }),
+        h(
+          'text',
+          {
+            x: 27,
+            y: 42.4,
+            textAnchor: 'middle',
+            fontSize: 9.3,
+            fontWeight: 700,
+            fill: '#fff',
+            fontFamily: 'Jost, ui-sans-serif, system-ui, sans-serif',
+            letterSpacing: 0.3,
+          },
+          label,
+        ),
+      )
+
+    const FORMAT_ICONS = [
+      { label: 'PDF', color: '#f9564e', bg: '#fff6f4' },
+      { label: 'DOCX', color: '#3a4178', bg: '#f6f6fb' },
+      { label: 'MD', color: '#23abab', bg: '#f4fbfb' },
+      { label: 'IMG', color: '#d99b18', bg: '#fffaef' },
+    ]
 
     function documentFor(fragment, css) {
       return (

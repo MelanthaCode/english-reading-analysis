@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.3 — 2026-11-19
+
+- The drop zone shows four hand-drawn document badges (PDF / DOCX / MD / IMG)
+  above the prompt, and the row lifts while a file hovers over the box.
+- The storage bar no longer repeats the path: left is the path, right is the
+  "you can change the folder" hint.
+
 ## 1.9.2 — 2026-11-19
 
 - History and favourites sit side by side again, still unboxed, under the single
