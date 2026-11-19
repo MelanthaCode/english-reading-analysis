@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.10.2 — 2026-11-19
+
+- The IMG badge uses white ink like the other three, so all four read as one set.
+
 ## 1.10.1 — 2026-11-19
 
 - Palettes are data now: `PALETTES` holds each scheme's tokens and per-format

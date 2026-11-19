@@ -47,8 +47,7 @@ window.__ModuleLoader__.load({
           PDF: { badge: '#f9564e', bg: '#fff6f4', ink: '#ffffff' },
           DOCX: { badge: '#3a4178', bg: '#f6f6fb', ink: '#ffffff' },
           MD: { badge: '#23abab', bg: '#f4fbfb', ink: '#ffffff' },
-          // Gold is a highlight colour on the reference site; it carries dark ink.
-          IMG: { badge: '#ffcc2d', bg: '#fffaef', ink: '#592b00' },
+          IMG: { badge: '#ffcc2d', bg: '#fffaef', ink: '#ffffff' },
         },
       },
     }
