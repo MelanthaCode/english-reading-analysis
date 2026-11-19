@@ -990,30 +990,30 @@ window.__ModuleLoader__.load({
       )
     }
 
-    /** A document sheet with a coloured format badge; drawn inline, no assets. */
+    /** A squat document card with a coloured format badge; drawn inline, no assets. */
     const docBadge = (label, color, bg) =>
       h(
         'svg',
-        { width: 54, height: 68, viewBox: '0 0 54 68', fill: 'none' },
+        { width: 72, height: 56, viewBox: '0 0 72 56', fill: 'none' },
         h('path', {
-          d: 'M9 2.5h24.5L45 14v49a3.5 3.5 0 0 1-3.5 3.5h-32A3.5 3.5 0 0 1 6 63V6a3.5 3.5 0 0 1 3-3.5z',
+          d: 'M12 3h37l12 12v33a5 5 0 0 1-5 5H12a5 5 0 0 1-5-5V8a5 5 0 0 1 5-5z',
           fill: bg,
           stroke: '#cdb79b',
-          strokeWidth: 1.3,
+          strokeWidth: 1.4,
         }),
-        h('path', { d: 'M33.5 2.5V14H45', stroke: '#cdb79b', strokeWidth: 1.3, fill: 'none' }),
-        h('rect', { x: 5, y: 30, width: 44, height: 17, rx: 4, fill: color }),
+        h('path', { d: 'M49 3v12h12', stroke: '#cdb79b', strokeWidth: 1.4, fill: 'none' }),
+        h('rect', { x: 8, y: 20, width: 56, height: 21, rx: 6, fill: color }),
         h(
           'text',
           {
-            x: 27,
-            y: 42.4,
+            x: 36,
+            y: 35.4,
             textAnchor: 'middle',
-            fontSize: 9.3,
+            fontSize: 13,
             fontWeight: 700,
             fill: '#fff',
             fontFamily: 'Jost, ui-sans-serif, system-ui, sans-serif',
-            letterSpacing: 0.3,
+            letterSpacing: 0.4,
           },
           label,
         ),

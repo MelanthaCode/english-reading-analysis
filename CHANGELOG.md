@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.9.4 — 2026-11-19
+
+- The four format badges are squat cards now (72×56) with larger labels, instead
+  of tall thin sheets.
+
 ## 1.9.3 — 2026-11-19
 
 - The drop zone shows four hand-drawn document badges (PDF / DOCX / MD / IMG)
