@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.0 — 2026-11-19
+
+- History and favourites are two inline columns under the action buttons instead
+  of a modal: left is history, right is favourites, each with a live fuzzy search
+  that filters as you type.
+- Each row opens on click; PDF and remove are small inline actions.
+
 ## 1.8.3 — 2026-11-19
 
 - The input box is a drop target now: dashed border, a document icon and

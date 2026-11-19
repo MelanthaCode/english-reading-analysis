@@ -63,6 +63,11 @@ window.__ModuleLoader__.load({
       changeFolder: '更改本地文件夹',
       pickFolderHint: '选择一个本地文件夹，历史与收藏会以 HTML 文件保存在那里，不上传任何内容。',
       history: '历史',
+      searchHistory: '搜索历史…',
+      searchFavorites: '搜索收藏…',
+      noMatch: '没有匹配的结果',
+      miniPdf: 'PDF',
+      miniRemove: '×',
       favorites: '收藏',
       open: '打开',
       remove: '删除',
@@ -112,6 +117,11 @@ window.__ModuleLoader__.load({
       changeFolder: 'Change folder',
       pickFolderHint: 'Pick a local folder; history and favourites are saved there as HTML files. Nothing is uploaded.',
       history: 'History',
+      searchHistory: 'Search history…',
+      searchFavorites: 'Search favourites…',
+      noMatch: 'No matches',
+      miniPdf: 'PDF',
+      miniRemove: '×',
       favorites: 'Favourites',
       open: 'Open',
       remove: 'Remove',
@@ -267,6 +277,68 @@ window.__ModuleLoader__.load({
       },
       dropIcon: {
         transition: 'transform 200ms ease, opacity 200ms ease',
+      },
+      columns: {
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: 14,
+        marginTop: 18,
+      },
+      column: {
+        border: `1px solid ${C.line}`,
+        borderRadius: 10,
+        padding: '12px 14px',
+        background: C.paper2,
+        minWidth: 0,
+      },
+      columnHead: {
+        display: 'flex',
+        alignItems: 'baseline',
+        justifyContent: 'space-between',
+        gap: 8,
+        marginBottom: 8,
+        fontFamily: C.head,
+        fontSize: 13,
+        color: C.ink,
+      },
+      search: {
+        width: '100%',
+        boxSizing: 'border-box',
+        border: `1px solid ${C.line}`,
+        background: C.paper,
+        color: C.ink,
+        borderRadius: 6,
+        padding: '6px 9px',
+        fontSize: 12,
+        fontFamily: C.head,
+        marginBottom: 8,
+        outline: 'none',
+      },
+      itemRow: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '6px 0',
+        borderBottom: `1px solid ${C.line}`,
+        fontSize: 12,
+      },
+      itemName: {
+        flex: 1,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        cursor: 'pointer',
+        color: C.ink,
+      },
+      itemActions: { display: 'flex', gap: 6, flexShrink: 0 },
+      miniBtn: {
+        border: 'none',
+        background: 'transparent',
+        color: C.muted,
+        cursor: 'pointer',
+        fontSize: 12,
+        fontFamily: C.head,
+        padding: '2px 4px',
       },
       storeBar: {
         display: 'flex',
@@ -453,9 +525,10 @@ window.__ModuleLoader__.load({
       const [seconds, setSeconds] = React.useState(0)
       const [status, setStatus] = React.useState(null)
       const [storeDir, setStoreDir] = React.useState(null)
+      const [histQuery, setHistQuery] = React.useState('')
+      const [favQuery, setFavQuery] = React.useState('')
       const [hist, setHist] = React.useState([])
       const [favs, setFavs] = React.useState([])
-      const [panel, setPanel] = React.useState(null)
       const [storeNote, setStoreNote] = React.useState(null)
       const [pdfTitle, setPdfTitle] = React.useState('')
 
@@ -531,7 +604,6 @@ window.__ModuleLoader__.load({
           setFragment(await readSaved(kind, name))
           setPdfTitle(name.replace(/^\d{8}-\d{6}-/, '').replace(/\.html$/, ''))
           setPhase('result')
-          setPanel(null)
           setStatus({ ok: true, text: t('ready') })
         } catch (error) {
           setStoreNote({ ok: false, text: String(error.message || error) })
@@ -569,6 +641,50 @@ window.__ModuleLoader__.load({
           setFileName(name || '')
           setStatus({ ok: true, text: `${name} · ${(data.text || '').length} ${t('charsReady')}` })
         }
+      }
+
+      const renderColumn = (title, items, query, setQuery, placeholder, kind) => {
+        const q = query.trim().toLowerCase()
+        const shown = q ? items.filter((item) => item.name.toLowerCase().includes(q)) : items
+        return h(
+          'div',
+          { style: styles.column },
+          h(
+            'div',
+            { style: styles.columnHead },
+            h('span', null, title),
+            h('span', { style: { color: C.muted, fontVariantNumeric: 'tabular-nums' } }, String(items.length)),
+          ),
+          h('input', {
+            style: styles.search,
+            value: query,
+            placeholder,
+            onChange: (event) => setQuery(event.target.value),
+          }),
+          shown.length === 0
+            ? h('div', { style: { fontSize: 12, color: C.muted, padding: '6px 0' } }, q ? t('noMatch') : t('emptyList'))
+            : shown.map((item) =>
+                h(
+                  'div',
+                  { key: item.name, style: styles.itemRow },
+                  h(
+                    'span',
+                    {
+                      style: styles.itemName,
+                      title: item.name,
+                      onClick: () => openSaved(kind, item.name),
+                    },
+                    item.name.replace(/^\d{8}-\d{6}-/, '').replace(/\.html$/, ''),
+                  ),
+                  h(
+                    'span',
+                    { style: styles.itemActions },
+                    h('button', { type: 'button', style: styles.miniBtn, onClick: () => downloadSaved(kind, item.name) }, t('miniPdf')),
+                    h('button', { type: 'button', style: styles.miniBtn, onClick: () => removeSaved(kind, item.name) }, t('miniRemove')),
+                  ),
+                ),
+              ),
+        )
       }
 
       const analyse = async () => {
@@ -710,16 +826,6 @@ window.__ModuleLoader__.load({
             ),
             h('button', { type: 'button', style: styles.storeBtn, onClick: chooseFolder },
               storeDir ? t('changeFolder') : t('pickFolder')),
-            h(
-              'button',
-              { type: 'button', style: styles.storeBtn, onClick: () => setPanel('history') },
-              `${t('history')}${hist.length ? ` (${hist.length})` : ''}`,
-            ),
-            h(
-              'button',
-              { type: 'button', style: styles.storeBtn, onClick: () => setPanel('favorites') },
-              `${t('favorites')}${favs.length ? ` (${favs.length})` : ''}`,
-            ),
             storeNote ? h('span', { style: storeNote.ok ? styles.status : styles.statusError }, storeNote.text) : null,
             !storeDir ? h('span', { style: { opacity: 0.75 } }, t('pickFolderHint')) : null,
           ),
@@ -846,37 +952,12 @@ window.__ModuleLoader__.load({
             status ? h('span', { style: status.ok ? styles.status : styles.statusError }, status.text) : null,
           ),
 
-          panel
-            ? h(
-                'div',
-                { style: styles.overlay, onClick: () => setPanel(null) },
-                h(
-                  'div',
-                  { style: styles.overlayCard, onClick: (event) => event.stopPropagation() },
-                  h('h2', { style: { margin: '0 0 10px', fontSize: 15, fontFamily: C.head } },
-                    panel === 'history' ? t('history') : t('favorites')),
-                  (panel === 'history' ? hist : favs).length === 0
-                    ? h('p', { style: { fontSize: 13, color: C.muted } }, t('emptyList'))
-                    : (panel === 'history' ? hist : favs).map((item) =>
-                        h(
-                          'div',
-                          { key: item.name, style: styles.listRow },
-                          h('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } },
-                            item.name.replace(/^\d{8}-\d{6}-/, '').replace(/\.html$/, '')),
-                          h(
-                            'span',
-                            { style: { display: 'flex', gap: 8, flexShrink: 0 } },
-                            h('button', { type: 'button', style: styles.storeBtn, onClick: () => openSaved(panel, item.name) }, t('open')),
-                            h('button', { type: 'button', style: styles.storeBtn, onClick: () => downloadSaved(panel, item.name) }, t('download')),
-                            h('button', { type: 'button', style: styles.storeBtn, onClick: () => removeSaved(panel, item.name) }, t('remove')),
-                          ),
-                        ),
-                      ),
-                  h('div', { style: { marginTop: 12, textAlign: 'right' } },
-                    h('button', { type: 'button', style: styles.storeBtn, onClick: () => setPanel(null) }, '×')),
-                ),
-              )
-            : null,
+          h(
+            'div',
+            { style: styles.columns },
+            renderColumn(t('history'), hist, histQuery, setHistQuery, t('searchHistory'), 'history'),
+            renderColumn(t('favorites'), favs, favQuery, setFavQuery, t('searchFavorites'), 'favorites'),
+          ),
         ),
       )
     }
