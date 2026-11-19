@@ -63,8 +63,7 @@ window.__ModuleLoader__.load({
       changeFolder: '更改本地文件夹',
       pickFolderHint: '选择一个本地文件夹，历史与收藏会以 HTML 文件保存在那里，不上传任何内容。',
       history: '历史',
-      searchHistory: '搜索历史…',
-      searchFavorites: '搜索收藏…',
+      searchAll: '搜索历史与收藏…',
       noMatch: '没有匹配的结果',
       miniPdf: 'PDF',
       miniRemove: '×',
@@ -117,8 +116,7 @@ window.__ModuleLoader__.load({
       changeFolder: 'Change folder',
       pickFolderHint: 'Pick a local folder; history and favourites are saved there as HTML files. Nothing is uploaded.',
       history: 'History',
-      searchHistory: 'Search history…',
-      searchFavorites: 'Search favourites…',
+      searchAll: 'Search history and favourites…',
       noMatch: 'No matches',
       miniPdf: 'PDF',
       miniRemove: '×',
@@ -278,48 +276,48 @@ window.__ModuleLoader__.load({
       dropIcon: {
         transition: 'transform 200ms ease, opacity 200ms ease',
       },
-      columns: {
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: 14,
-        marginTop: 18,
+      searchWrap: { marginTop: 18 },
+      searchWide: {
+        width: '100%',
+        boxSizing: 'border-box',
+        border: 'none',
+        borderBottom: `1px solid ${C.line}`,
+        background: 'transparent',
+        color: C.ink,
+        borderRadius: 0,
+        padding: '8px 2px',
+        fontSize: 13,
+        fontFamily: C.head,
+        outline: 'none',
+        marginBottom: 4,
       },
-      column: {
-        border: `1px solid ${C.line}`,
-        borderRadius: 10,
-        padding: '12px 14px',
-        background: C.paper2,
-        minWidth: 0,
-      },
-      columnHead: {
+      listHead: {
         display: 'flex',
         alignItems: 'baseline',
         justifyContent: 'space-between',
-        gap: 8,
-        marginBottom: 8,
+        marginTop: 16,
+        marginBottom: 4,
         fontFamily: C.head,
-        fontSize: 13,
-        color: C.ink,
-      },
-      search: {
-        width: '100%',
-        boxSizing: 'border-box',
-        border: `1px solid ${C.line}`,
-        background: C.paper,
-        color: C.ink,
-        borderRadius: 6,
-        padding: '6px 9px',
         fontSize: 12,
-        fontFamily: C.head,
-        marginBottom: 8,
-        outline: 'none',
+        letterSpacing: '.08em',
+        color: C.muted,
+        textTransform: 'uppercase',
       },
-      itemRow: {
+      listItem: {
         display: 'flex',
         alignItems: 'center',
-        gap: 8,
-        padding: '6px 0',
+        gap: 10,
+        padding: '7px 0',
         borderBottom: `1px solid ${C.line}`,
+        fontSize: 13,
+      },
+      index: {
+        width: 22,
+        flexShrink: 0,
+        textAlign: 'right',
+        color: C.coral,
+        fontFamily: C.head,
+        fontVariantNumeric: 'tabular-nums',
         fontSize: 12,
       },
       itemName: {
@@ -330,7 +328,7 @@ window.__ModuleLoader__.load({
         cursor: 'pointer',
         color: C.ink,
       },
-      itemActions: { display: 'flex', gap: 6, flexShrink: 0 },
+      itemActions: { display: 'flex', gap: 4, flexShrink: 0 },
       miniBtn: {
         border: 'none',
         background: 'transparent',
@@ -338,7 +336,7 @@ window.__ModuleLoader__.load({
         cursor: 'pointer',
         fontSize: 12,
         fontFamily: C.head,
-        padding: '2px 4px',
+        padding: '2px 5px',
       },
       storeBar: {
         display: 'flex',
@@ -525,8 +523,7 @@ window.__ModuleLoader__.load({
       const [seconds, setSeconds] = React.useState(0)
       const [status, setStatus] = React.useState(null)
       const [storeDir, setStoreDir] = React.useState(null)
-      const [histQuery, setHistQuery] = React.useState('')
-      const [favQuery, setFavQuery] = React.useState('')
+      const [query, setQuery] = React.useState('')
       const [hist, setHist] = React.useState([])
       const [favs, setFavs] = React.useState([])
       const [storeNote, setStoreNote] = React.useState(null)
@@ -643,37 +640,27 @@ window.__ModuleLoader__.load({
         }
       }
 
-      const renderColumn = (title, items, query, setQuery, placeholder, kind) => {
+      const renderList = (title, items, kind) => {
         const q = query.trim().toLowerCase()
         const shown = q ? items.filter((item) => item.name.toLowerCase().includes(q)) : items
         return h(
           'div',
-          { style: styles.column },
-          h(
-            'div',
-            { style: styles.columnHead },
-            h('span', null, title),
-            h('span', { style: { color: C.muted, fontVariantNumeric: 'tabular-nums' } }, String(items.length)),
-          ),
-          h('input', {
-            style: styles.search,
-            value: query,
-            placeholder,
-            onChange: (event) => setQuery(event.target.value),
-          }),
+          { key: kind },
+          h('div', { style: styles.listHead }, h('span', null, title), h('span', null, String(items.length))),
           shown.length === 0
-            ? h('div', { style: { fontSize: 12, color: C.muted, padding: '6px 0' } }, q ? t('noMatch') : t('emptyList'))
-            : shown.map((item) =>
+            ? h('div', { style: { fontSize: 12.5, color: C.muted, padding: '8px 0' } }, q ? t('noMatch') : t('emptyList'))
+            : shown.map((item, index) =>
                 h(
                   'div',
-                  { key: item.name, style: styles.itemRow },
+                  { key: item.name, style: styles.listItem },
                   h(
                     'span',
-                    {
-                      style: styles.itemName,
-                      title: item.name,
-                      onClick: () => openSaved(kind, item.name),
-                    },
+                    { style: { ...styles.index, color: index < 3 ? C.coral : C.muted } },
+                    String(index + 1).padStart(2, '0'),
+                  ),
+                  h(
+                    'span',
+                    { style: styles.itemName, title: item.name, onClick: () => openSaved(kind, item.name) },
                     item.name.replace(/^\d{8}-\d{6}-/, '').replace(/\.html$/, ''),
                   ),
                   h(
@@ -954,9 +941,15 @@ window.__ModuleLoader__.load({
 
           h(
             'div',
-            { style: styles.columns },
-            renderColumn(t('history'), hist, histQuery, setHistQuery, t('searchHistory'), 'history'),
-            renderColumn(t('favorites'), favs, favQuery, setFavQuery, t('searchFavorites'), 'favorites'),
+            { style: styles.searchWrap },
+            h('input', {
+              style: styles.searchWide,
+              value: query,
+              placeholder: t('searchAll'),
+              onChange: (event) => setQuery(event.target.value),
+            }),
+            renderList(t('history'), hist, 'history'),
+            renderList(t('favorites'), favs, 'favorites'),
           ),
         ),
       )

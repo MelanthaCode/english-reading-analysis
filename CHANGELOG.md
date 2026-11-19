@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.1 — 2026-11-19
+
+- History and favourites are plain lists on the page instead of boxed cards:
+  a ranked list with the first three numbers in coral, separated by hairlines and
+  scrolling with the page.
+- One search field filters both lists at once.
+
 ## 1.9.0 — 2026-11-19
 
 - History and favourites are two inline columns under the action buttons instead
