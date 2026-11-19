@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.2 — 2026-11-19
+
+- The file list rows are clickable as a whole, not just the small button, so a
+  PDF is selected by clicking anywhere on its row.
+- The storage bar shows the chosen folder path and the button turns into
+  "change local folder", which is how the root directory is switched.
+- Dropped the format hint line under the input box.
+
 ## 1.8.1 — 2026-11-18
 
 - A running Host from an older build answers 405 for the new routes; the panel now

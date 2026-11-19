@@ -38,7 +38,6 @@ window.__ModuleLoader__.load({
       start: '开始分析',
       running: '正在分析',
       elapsed: '已用时',
-      note: '支持 txt、md、Word、PDF（含扫描件）与图片；扫描件会逐页转成图片交给模型识读。',
       empty: '先粘贴英文，或拖入一个文本文件。',
       emptyList: '这里还没有内容',
       fileLoaded: '文件已读入',
@@ -59,6 +58,7 @@ window.__ModuleLoader__.load({
       storageNone: '未选择文件夹',
       storageReady: '已连接',
       pickFolder: '选择文件夹',
+      changeFolder: '更改本地文件夹',
       pickFolderHint: '选择一个本地文件夹，历史与收藏会以 HTML 文件保存在那里，不上传任何内容。',
       history: '历史',
       favorites: '收藏',
@@ -85,7 +85,6 @@ window.__ModuleLoader__.load({
       start: 'Analyse',
       running: 'Analysing',
       elapsed: 'elapsed',
-      note: 'Accepts txt, md, Word, PDF (scans included) and images; scanned pages are rendered and read by the model.',
       empty: 'Paste the English first, or drop a text file.',
       emptyList: 'Nothing here yet',
       fileLoaded: 'File loaded',
@@ -106,6 +105,7 @@ window.__ModuleLoader__.load({
       storageNone: 'No folder selected',
       storageReady: 'Connected',
       pickFolder: 'Choose folder',
+      changeFolder: 'Change folder',
       pickFolderHint: 'Pick a local folder; history and favourites are saved there as HTML files. Nothing is uploaded.',
       history: 'History',
       favorites: 'Favourites',
@@ -572,7 +572,11 @@ window.__ModuleLoader__.load({
       const loadPickedFile = async (file) => {
         setPanel(null)
         setStatus({ ok: true, text: `${t('extracting')} ${file.name}…` })
-        const { ok, data } = await postJson('/extract-path', { path: file.path })
+        const { ok, status, data } = await postJson('/extract-path', { path: file.path })
+        if (status === 405) {
+          setStatus({ ok: false, text: t('staleHost') })
+          return
+        }
         if (!ok || data.error) {
           setStatus({ ok: false, text: data.error || t('readFailed') })
           return
@@ -780,8 +784,13 @@ window.__ModuleLoader__.load({
           h(
             'div',
             { style: styles.storeBar },
-            h('span', null, `${t('storage')}：${storeDir ? t('storageReady') : t('storageNone')}`),
-            h('button', { type: 'button', style: styles.storeBtn, onClick: chooseFolder }, t('pickFolder')),
+            h(
+              'span',
+              { style: { maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }, title: storeDir || '' },
+              `${t('storage')}：${storeDir || t('storageNone')}`,
+            ),
+            h('button', { type: 'button', style: styles.storeBtn, onClick: chooseFolder },
+              storeDir ? t('changeFolder') : t('pickFolder')),
             h(
               'button',
               { type: 'button', style: styles.storeBtn, onClick: () => setPanel('history') },
@@ -907,8 +916,6 @@ window.__ModuleLoader__.load({
               : null,
             status ? h('span', { style: status.ok ? styles.status : styles.statusError }, status.text) : null,
           ),
-
-          phase === 'input' ? h('p', { style: styles.note }, t('note')) : null,
 
           panel
             ? h(
