@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.5 — 2026-11-19
+
+- Format badges are 72×60 now — a little taller than the previous 72×56.
+
 ## 1.9.4 — 2026-11-19
 
 - The four format badges are squat cards now (72×56) with larger labels, instead

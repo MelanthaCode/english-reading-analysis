@@ -994,20 +994,20 @@ window.__ModuleLoader__.load({
     const docBadge = (label, color, bg) =>
       h(
         'svg',
-        { width: 72, height: 56, viewBox: '0 0 72 56', fill: 'none' },
+        { width: 72, height: 60, viewBox: '0 0 72 60', fill: 'none' },
         h('path', {
-          d: 'M12 3h37l12 12v33a5 5 0 0 1-5 5H12a5 5 0 0 1-5-5V8a5 5 0 0 1 5-5z',
+          d: 'M12 3h37l12 12v37a5 5 0 0 1-5 5H12a5 5 0 0 1-5-5V8a5 5 0 0 1 5-5z',
           fill: bg,
           stroke: '#cdb79b',
           strokeWidth: 1.4,
         }),
         h('path', { d: 'M49 3v12h12', stroke: '#cdb79b', strokeWidth: 1.4, fill: 'none' }),
-        h('rect', { x: 8, y: 20, width: 56, height: 21, rx: 6, fill: color }),
+        h('rect', { x: 8, y: 25, width: 56, height: 21, rx: 6, fill: color }),
         h(
           'text',
           {
             x: 36,
-            y: 35.4,
+            y: 40.2,
             textAnchor: 'middle',
             fontSize: 13,
             fontWeight: 700,
