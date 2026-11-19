@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.3 — 2026-11-19
+
+- The input box is a drop target now: dashed border, a document icon and
+  "drop a file here" in the middle, and the box tints coral, lifts slightly and
+  says "release to import" while a file hovers over it.
+- The "choose file" button and its folder-listing flow are gone; dragging is the
+  documented way to bring a file in.
+
 ## 1.8.2 — 2026-11-19
 
 - The file list rows are clickable as a whole, not just the small button, so a

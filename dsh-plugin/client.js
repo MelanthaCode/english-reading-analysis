@@ -45,6 +45,8 @@ window.__ModuleLoader__.load({
       readFailed: '读取文件失败。',
       extracting: '正在解析',
       pickFile: '选择文件',
+      dropHint: '把英文粘贴到这里，或把文件拖进这个框',
+      dropNow: '松开即可导入',
       charsReady: '字符',
       pagesLoaded: '页图片已载入',
       failed: '失败',
@@ -92,6 +94,8 @@ window.__ModuleLoader__.load({
       readFailed: 'Could not read that file.',
       extracting: 'Reading',
       pickFile: 'Choose file',
+      dropHint: 'Paste the English here, or drop a file into this box',
+      dropNow: 'Release to import',
       charsReady: 'characters',
       pagesLoaded: 'page images loaded',
       failed: 'Failed',
@@ -247,6 +251,23 @@ window.__ModuleLoader__.load({
         transition: 'width 320ms ease',
       },
       docHost: { display: 'block', marginTop: 4 },
+      dropHint: {
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        pointerEvents: 'none',
+        color: C.muted,
+        fontFamily: C.head,
+        fontSize: 13,
+        transition: 'transform 180ms ease, color 180ms ease',
+      },
+      dropIcon: {
+        transition: 'transform 200ms ease, opacity 200ms ease',
+      },
       storeBar: {
         display: 'flex',
         alignItems: 'center',
@@ -432,13 +453,13 @@ window.__ModuleLoader__.load({
       const [seconds, setSeconds] = React.useState(0)
       const [status, setStatus] = React.useState(null)
       const [storeDir, setStoreDir] = React.useState(null)
-      const [fileList, setFileList] = React.useState([])
       const [hist, setHist] = React.useState([])
       const [favs, setFavs] = React.useState([])
       const [panel, setPanel] = React.useState(null)
       const [storeNote, setStoreNote] = React.useState(null)
       const [pdfTitle, setPdfTitle] = React.useState('')
 
+      const dragDepth = React.useRef(0)
       const abortRef = React.useRef(null)
       const fileRef = React.useRef(null)
       const accRef = React.useRef('')
@@ -547,108 +568,6 @@ window.__ModuleLoader__.load({
           setText(data.text || '')
           setFileName(name || '')
           setStatus({ ok: true, text: `${name} · ${(data.text || '').length} ${t('charsReady')}` })
-        }
-      }
-
-      /** Pick a folder, then one document inside it: the shell has no file dialog. */
-      const chooseInputFile = async () => {
-        setStatus({ ok: true, text: t('opening') })
-        const dir = await pickDir()
-        if (!dir) setStatus(null)
-        if (!dir) return
-        const { ok, data } = await postJson('/list-folder', { dir })
-        if (!ok) {
-          setStatus({ ok: false, text: data.error || t('readFailed') })
-          return
-        }
-        if (!data.files || !data.files.length) {
-          setStatus({ ok: false, text: t('emptyFolder') })
-          return
-        }
-        setFileList(data.files)
-        setPanel('files')
-      }
-
-      const loadPickedFile = async (file) => {
-        setPanel(null)
-        setStatus({ ok: true, text: `${t('extracting')} ${file.name}…` })
-        const { ok, status, data } = await postJson('/extract-path', { path: file.path })
-        if (status === 405) {
-          setStatus({ ok: false, text: t('staleHost') })
-          return
-        }
-        if (!ok || data.error) {
-          setStatus({ ok: false, text: data.error || t('readFailed') })
-          return
-        }
-        applyExtract(data, file.name)
-      }
-
-      const loadCss = React.useCallback(async () => {
-        if (docCss) return
-        try {
-          const response = await fetch(`${API}/style.css`)
-          const raw = await response.text()
-          const faces = (raw.match(/@font-face\{[\s\S]*?\}\s*/g) || []).join('\n')
-          setFonts(faces)
-          setRawCss(raw)
-          setDocCss(toShadowCss(raw.replace(/@font-face\{[\s\S]*?\}\s*/g, '')))
-        } catch {
-          setDocCss('')
-        }
-      }, [docCss])
-
-      React.useEffect(() => {
-        void loadCss()
-      }, [loadCss])
-
-      // Paint the document into its own shadow root: isolation without rewriting
-      // any selector, and no iframe to fight over height.
-      React.useEffect(() => {
-        const host = hostRef.current
-        if (!host || !docCss) return
-        const root = host.shadowRoot || host.attachShadow({ mode: 'open' })
-        root.innerHTML = `<style>${docCss}</style><div class="er-doc">${sanitize(fragment)}</div>`
-      }, [fragment, docCss])
-
-      React.useEffect(() => {
-        if (phase !== 'running') return undefined
-        const timer = setInterval(() => {
-          const elapsed = (Date.now() - startRef.current) / 1000
-          setSeconds(Math.round(elapsed))
-          const byChars = accRef.current.length / expectedRef.current
-          const byTime = (1 - Math.exp(-elapsed / 38)) * 0.92
-          const next = Math.min(96, Math.round(Math.max(byChars, byTime) * 100))
-          // Never go backwards: the estimate can dip as the expected size settles.
-          setPct((prev) => Math.max(prev, next))
-        }, 500)
-        return () => clearInterval(timer)
-      }, [phase])
-
-      const readDropped = async (file) => {
-        if (!file) return
-        setStatus({ ok: true, text: `${t('extracting')} ${file.name}…` })
-        try {
-          const buffer = await file.arrayBuffer()
-          const bytes = new Uint8Array(buffer)
-          let binary = ''
-          const chunk = 0x8000
-          for (let i = 0; i < bytes.length; i += chunk) {
-            binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk))
-          }
-          const response = await fetch(`${API}/extract`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ name: file.name, data: btoa(binary) }),
-          })
-          const body = await response.json().catch(() => ({}))
-          if (!response.ok || body.error) {
-            setStatus({ ok: false, text: body.error || `HTTP ${response.status}` })
-            return
-          }
-          applyExtract(body, file.name)
-        } catch (error) {
-          setStatus({ ok: false, text: `${t('readFailed')} ${(error && error.message) || error}` })
         }
       }
 
@@ -825,16 +744,32 @@ window.__ModuleLoader__.load({
                 {
                   style: {
                     ...styles.zone,
+                    position: 'relative',
+                    borderStyle: 'dashed',
+                    borderWidth: 1.5,
                     borderColor: dragging ? C.coral : '#d9c9b2',
-                    background: dragging ? '#faf5ea' : C.paper2,
+                    background: dragging ? '#fdf1ec' : C.paper2,
+                    boxShadow: dragging ? '0 0 0 4px rgba(249,86,78,.10)' : 'none',
+                    transform: dragging ? 'scale(1.004)' : 'scale(1)',
+                    transition: 'border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease',
+                  },
+                  onDragEnter: (event) => {
+                    event.preventDefault()
+                    dragDepth.current += 1
+                    setDragging(true)
                   },
                   onDragOver: (event) => {
                     event.preventDefault()
-                    setDragging(true)
+                    event.dataTransfer.dropEffect = 'copy'
+                    if (!dragging) setDragging(true)
                   },
-                  onDragLeave: () => setDragging(false),
+                  onDragLeave: () => {
+                    dragDepth.current = Math.max(0, dragDepth.current - 1)
+                    if (dragDepth.current === 0) setDragging(false)
+                  },
                   onDrop: async (event) => {
                     event.preventDefault()
+                    dragDepth.current = 0
                     setDragging(false)
                     const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]
                     if (file) await readDropped(file)
@@ -842,8 +777,7 @@ window.__ModuleLoader__.load({
                 },
                 h('textarea', {
                   style: styles.zoneInput,
-                  placeholder: t('zonePlaceholder'),
-                  value: text,
+                      value: text,
                   onChange: (event) => {
                     setText(event.target.value)
                     setFileName('')
@@ -857,11 +791,6 @@ window.__ModuleLoader__.load({
                   h(
                     'span',
                     { style: { display: 'flex', gap: 14 } },
-                    h(
-                      'button',
-                      { type: 'button', style: styles.linkButton, onClick: chooseInputFile },
-                      t('pickFile'),
-                    ),
                     text
                       ? h(
                           'button',
@@ -925,20 +854,9 @@ window.__ModuleLoader__.load({
                   'div',
                   { style: styles.overlayCard, onClick: (event) => event.stopPropagation() },
                   h('h2', { style: { margin: '0 0 10px', fontSize: 15, fontFamily: C.head } },
-                    panel === 'history' ? t('history') : panel === 'favorites' ? t('favorites') : t('pickFile')),
-                  panel === 'files'
-                    ? fileList.map((file) =>
-                        h(
-                          'div',
-                          { key: file.path, style: styles.listRow },
-                          h('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, file.name),
-                          h('button', { type: 'button', style: styles.storeBtn, onClick: () => loadPickedFile(file) }, t('open')),
-                        ),
-                      )
-                    : (panel === 'history' ? hist : favs).length === 0
+                    panel === 'history' ? t('history') : t('favorites')),
+                  (panel === 'history' ? hist : favs).length === 0
                     ? h('p', { style: { fontSize: 13, color: C.muted } }, t('emptyList'))
-                    : panel === 'files'
-                    ? null
                     : (panel === 'history' ? hist : favs).map((item) =>
                         h(
                           'div',
