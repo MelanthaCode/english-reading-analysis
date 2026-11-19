@@ -1,0 +1,47 @@
+{
+  "$comment": "Colour schemes used by the panel and the print stylesheet. Tokens come from https://searchingforbirds.visualcinnamon.com/ (its CSS variables and per-species colours). Switch the active scheme in dsh-plugin/client.js; nothing else needs to change.",
+  "schemes": {
+    "searching-for-birds": {
+      "label": "Searching for Birds",
+      "source": "https://searchingforbirds.visualcinnamon.com/assets/index.css",
+      "ui": {
+        "paper": "#f4efe5",
+        "paper2": "#faf4ef",
+        "soft": "#e7decd",
+        "ink": "#28211e",
+        "muted": "#80766b",
+        "annotate": "#68594f",
+        "faint": "#afa39c",
+        "line": "#e9d3bb",
+        "coral": "#f9564e",
+        "gold": "#ffcc2d",
+        "teal": "#23abab",
+        "indigo": "#3a4178",
+        "orange": "#ff923e",
+        "green": "#98cb5f",
+        "blue": "#51aade",
+        "pink": "#ffa7b4",
+        "sand": "#ccaf91",
+        "hawk": "#2ac7c7",
+        "brown": "#592b00"
+      },
+      "birds": {
+        "northern-cardinal": "#f9564e",
+        "bald-eagle": "#ffcc2d",
+        "common-raven": "#3a4178",
+        "sandhill-crane": "#98cb5f",
+        "coopers-hawk": "#2ac7c7",
+        "american-robin": "#ff923e",
+        "blue-jay": "#51aade",
+        "mallard": "#ffa7b4",
+        "barred-owl": "#ccaf91"
+      },
+      "formats": {
+        "PDF": { "badge": "#f9564e", "bg": "#fff6f4", "ink": "#ffffff" },
+        "DOCX": { "badge": "#3a4178", "bg": "#f6f6fb", "ink": "#ffffff" },
+        "MD": { "badge": "#23abab", "bg": "#f4fbfb", "ink": "#ffffff" },
+        "IMG": { "badge": "#ffcc2d", "bg": "#fffaef", "ink": "#592b00" }
+      }
+    }
+  }
+}

@@ -16,28 +16,48 @@ window.__ModuleLoader__.load({
     const API = '/x-english-reading'
 
     // Palette shared with the skill stylesheet (Searching for Birds language).
-    // Tokens from searchingforbirds.visualcinnamon.com: its CSS variables plus the
-    // per-species colours it uses for annotations.
+    // Colour schemes, kept as data so a scheme can be swapped by name. Mirrored in
+    // assets/palette.json for the print stylesheet; see PALETTE below.
+    const PALETTES = {
+      'searching-for-birds': {
+        label: 'Searching for Birds',
+        source: 'https://searchingforbirds.visualcinnamon.com/assets/index.css',
+        ui: {
+          paper: '#f4efe5',      // --background
+          paper2: '#faf4ef',     // raised surface
+          soft: '#e7decd',       // --background-darker
+          ink: '#28211e',        // --text-primary
+          muted: '#80766b',      // --text-secondary
+          annotate: '#68594f',   // --text-annotation
+          faint: '#afa39c',      // --text-muted
+          line: '#e9d3bb',
+          coral: '#f9564e',      // --primary-color, northern cardinal
+          gold: '#ffcc2d',       // --secondary-color, bald eagle
+          teal: '#23abab',       // --accent-color
+          indigo: '#3a4178',     // common raven
+          orange: '#ff923e',     // american robin
+          green: '#98cb5f',      // sandhill crane
+          blue: '#51aade',       // blue jay
+          pink: '#ffa7b4',       // mallard
+          sand: '#ccaf91',       // barred owl
+          hawk: '#2ac7c7',       // cooper's hawk
+          brown: '#592b00',
+        },
+        formats: {
+          PDF: { badge: '#f9564e', bg: '#fff6f4', ink: '#ffffff' },
+          DOCX: { badge: '#3a4178', bg: '#f6f6fb', ink: '#ffffff' },
+          MD: { badge: '#23abab', bg: '#f4fbfb', ink: '#ffffff' },
+          // Gold is a highlight colour on the reference site; it carries dark ink.
+          IMG: { badge: '#ffcc2d', bg: '#fffaef', ink: '#592b00' },
+        },
+      },
+    }
+
+    const ACTIVE_PALETTE = 'searching-for-birds'
+    const SCHEME = PALETTES[ACTIVE_PALETTE]
+
     const C = {
-      paper: '#f4efe5',        // --background
-      paper2: '#faf4ef',       // raised surface
-      soft: '#e7decd',         // --background-darker
-      ink: '#28211e',          // --text-primary
-      muted: '#80766b',        // --text-secondary
-      annotate: '#68594f',     // --text-annotation
-      faint: '#afa39c',        // --text-muted
-      line: '#e9d3bb',
-      coral: '#f9564e',        // --primary-color, northern cardinal
-      gold: '#ffcc2d',         // --secondary-color, bald eagle
-      teal: '#23abab',         // --accent-color
-      indigo: '#3a4178',       // common raven
-      orange: '#ff923e',       // american robin
-      green: '#98cb5f',        // sandhill crane
-      blue: '#51aade',         // blue jay
-      pink: '#ffa7b4',         // mallard
-      sand: '#ccaf91',         // barred owl
-      hawk: '#2ac7c7',         // cooper's hawk
-      brown: '#592b00',
+      ...SCHEME.ui,
       head: "'Jost','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',system-ui,sans-serif",
       body: "'Zilla Slab',Georgia,'Times New Roman','Songti SC',SimSun,'Noto Serif CJK SC',serif",
     }
@@ -1032,13 +1052,12 @@ window.__ModuleLoader__.load({
         ),
       )
 
-    const FORMAT_ICONS = [
-      { label: 'PDF', color: '#f9564e', bg: '#fff6f4', ink: '#ffffff' },
-      { label: 'DOCX', color: '#3a4178', bg: '#f6f6fb', ink: '#ffffff' },
-      { label: 'MD', color: '#23abab', bg: '#f4fbfb', ink: '#ffffff' },
-      // Gold is a highlight colour on the reference site, so it carries dark ink.
-      { label: 'IMG', color: '#ffcc2d', bg: '#fffaef', ink: '#592b00' },
-    ]
+    const FORMAT_ICONS = ['PDF', 'DOCX', 'MD', 'IMG'].map((label) => ({
+      label,
+      color: SCHEME.formats[label].badge,
+      bg: SCHEME.formats[label].bg,
+      ink: SCHEME.formats[label].ink,
+    }))
 
     function documentFor(fragment, css) {
       return (

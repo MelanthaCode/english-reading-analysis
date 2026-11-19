@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.10.1 — 2026-11-19
+
+- Palettes are data now: `PALETTES` holds each scheme's tokens and per-format
+  badge colours, `ACTIVE_PALETTE` picks one, and everything else reads from it.
+  Mirrored to `assets/palette.json` for the print stylesheet.
+
 ## 1.10.0 — 2026-11-19
 
 - The palette now comes verbatim from searchingforbirds.visualcinnamon.com: its
