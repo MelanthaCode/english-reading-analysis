@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.10.4 — 2026-11-21
+
+- The result of a drop is shown in a banner directly under the box, not in the
+  row below the buttons where it could sit off-screen: green for success, coral
+  for failure, with the reason.
+- A drop that carries no file, a folder instead of a file, a 405 from an older
+  Host, or a file that opens but yields no text each say so explicitly.
+
 ## 1.10.3 — 2026-11-19
 
 - Dropping a file now reports back: the box footer shows the file name, its size

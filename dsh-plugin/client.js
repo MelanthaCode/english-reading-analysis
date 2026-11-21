@@ -87,6 +87,8 @@ window.__ModuleLoader__.load({
       kindScan: '扫描件',
       kindImage: '图片',
       readFail: '读取失败',
+      noFile: '没有收到文件——请从访达直接拖入文件（拖文件夹不行）',
+      emptyRead: '文件打开了，但没有读到任何文字',
       charsReady: '字符',
       pagesLoaded: '页图片已载入',
       failed: '失败',
@@ -149,6 +151,8 @@ window.__ModuleLoader__.load({
       kindScan: 'scanned pages',
       kindImage: 'image',
       readFail: 'Could not read',
+      noFile: 'No file received — drag a file (not a folder) from Finder',
+      emptyRead: 'The file opened but no text was found in it',
       charsReady: 'characters',
       pagesLoaded: 'page images loaded',
       failed: 'Failed',
@@ -394,6 +398,30 @@ window.__ModuleLoader__.load({
         fontSize: 12,
         fontFamily: C.head,
         padding: '2px 5px',
+      },
+      bannerOk: {
+        marginTop: 12,
+        padding: '9px 12px',
+        borderRadius: 8,
+        background: 'rgba(152,203,95,.14)',
+        border: `1px solid rgba(152,203,95,.45)`,
+        color: '#4a6b28',
+        fontSize: 12.5,
+        lineHeight: 1.6,
+        fontFamily: C.head,
+        wordBreak: 'break-word',
+      },
+      bannerErr: {
+        marginTop: 12,
+        padding: '9px 12px',
+        borderRadius: 8,
+        background: 'rgba(249,86,78,.10)',
+        border: `1px solid rgba(249,86,78,.45)`,
+        color: '#9d2700',
+        fontSize: 12.5,
+        lineHeight: 1.6,
+        fontFamily: C.head,
+        wordBreak: 'break-word',
       },
       storeBar: {
         display: 'flex',
@@ -704,6 +732,11 @@ window.__ModuleLoader__.load({
             : t('kindText')
         setFileName(name || '')
         setFileMeta(size ? { size } : null)
+        const charCount = (data.text || '').length
+        if (!charCount && !(data.images && data.images.length)) {
+          setStatus({ ok: false, text: `${name} · ${t('emptyRead')}` })
+          return
+        }
         if (data.images && data.images.length) {
           setImages(data.images)
           setText(data.text || '')
@@ -939,8 +972,13 @@ window.__ModuleLoader__.load({
                     event.preventDefault()
                     dragDepth.current = 0
                     setDragging(false)
-                    const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]
-                    if (file) await readDropped(file)
+                    const list = event.dataTransfer && event.dataTransfer.files
+                    const file = list && list.length ? list[0] : null
+                    if (!file) {
+                      setStatus({ ok: false, text: t('noFile') })
+                      return
+                    }
+                    await readDropped(file)
                   },
                 },
                 !text
@@ -1008,6 +1046,10 @@ window.__ModuleLoader__.load({
               )
             : null,
 
+          status
+            ? h('div', { style: status.ok ? styles.bannerOk : styles.bannerErr }, status.text)
+            : null,
+
           fragment ? h('div', { ref: hostRef, style: styles.docHost }) : null,
 
           h(
@@ -1039,7 +1081,6 @@ window.__ModuleLoader__.load({
                   t('again'),
                 )
               : null,
-            status ? h('span', { style: status.ok ? styles.status : styles.statusError }, status.text) : null,
           ),
 
           h(
