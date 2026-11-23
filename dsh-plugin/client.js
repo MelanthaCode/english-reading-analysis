@@ -87,7 +87,9 @@ window.__ModuleLoader__.load({
       kindScan: '扫描件',
       kindImage: '图片',
       readFail: '读取失败',
-      noFile: '没有收到文件——请从访达直接拖入文件（拖文件夹不行）',
+      noFile: '没有收到文件——当前环境可能不允许拖放，请点「选择文件」',
+      pickFile: '选择文件',
+      or: '或',
       emptyRead: '文件打开了，但没有读到任何文字',
       charsReady: '字符',
       pagesLoaded: '页图片已载入',
@@ -151,7 +153,9 @@ window.__ModuleLoader__.load({
       kindScan: 'scanned pages',
       kindImage: 'image',
       readFail: 'Could not read',
-      noFile: 'No file received — drag a file (not a folder) from Finder',
+      noFile: 'No file received — dragging may be blocked here; use “Choose file”',
+      pickFile: 'Choose file',
+      or: 'or',
       emptyRead: 'The file opened but no text was found in it',
       charsReady: 'characters',
       pagesLoaded: 'page images loaded',
@@ -605,6 +609,8 @@ window.__ModuleLoader__.load({
       const [text, setText] = React.useState('')
       const [fileName, setFileName] = React.useState('')
       const [fileMeta, setFileMeta] = React.useState(null)
+      const [fileList, setFileList] = React.useState([])
+      const [panel, setPanel] = React.useState(null)
       const [images, setImages] = React.useState([])
       const [dragging, setDragging] = React.useState(false)
       const [phase, setPhase] = React.useState('input')
@@ -717,6 +723,47 @@ window.__ModuleLoader__.load({
       const addFavorite = async () => {
         const ok = await persist('favorites', documentFor(fragment, rawCss), topicOf(fragment))
         setStoreNote(ok ? { ok: true, text: t('savedFav') } : { ok: false, text: t('storageNone') })
+      }
+
+      /** Pick a folder, then one document inside it: this shell has no file dialog. */
+      const chooseInputFile = async () => {
+        setStatus({ ok: true, text: t('opening') })
+        const dir = await pickDir()
+        if (!dir) {
+          setStatus(null)
+          return
+        }
+        const { ok, status, data } = await postJson('/list-folder', { dir })
+        if (status === 405) {
+          setStatus({ ok: false, text: t('staleHost') })
+          return
+        }
+        if (!ok) {
+          setStatus({ ok: false, text: data.error || t('readFailed') })
+          return
+        }
+        if (!data.files || !data.files.length) {
+          setStatus({ ok: false, text: t('emptyFolder') })
+          return
+        }
+        setFileList(data.files)
+        setPanel('files')
+        setStatus(null)
+      }
+
+      const loadPickedFile = async (file) => {
+        setPanel(null)
+        setStatus({ ok: true, text: `${t('received')} ${file.name}，${t('parsing')}…` })
+        const { ok, status, data } = await postJson('/extract-path', { path: file.path })
+        if (status === 405) {
+          setStatus({ ok: false, text: t('staleHost') })
+          return
+        }
+        if (!ok || data.error) {
+          setStatus({ ok: false, text: `${file.name} ${t('readFail')}：${data.error || `HTTP ${status}`}` })
+          return
+        }
+        applyExtract(data, file.name)
       }
 
       const applyExtract = (data, name, size) => {
@@ -1005,11 +1052,18 @@ window.__ModuleLoader__.load({
                   : null,
                 h('textarea', {
                   style: styles.zoneInput,
-                      value: text,
+                  value: text,
                   onChange: (event) => {
                     setText(event.target.value)
                     setFileName('')
                     setStatus(null)
+                  },
+                  onPaste: async (event) => {
+                    const items = event.clipboardData && event.clipboardData.files
+                    if (items && items.length) {
+                      event.preventDefault()
+                      await readDropped(items[0])
+                    }
                   },
                 }),
                 h(
@@ -1024,7 +1078,14 @@ window.__ModuleLoader__.load({
                   ),
                   h(
                     'span',
-                    { style: { display: 'flex', gap: 14 } },
+                    { style: { display: 'flex', gap: 14, alignItems: 'center' } },
+                    text
+                      ? null
+                      : h(
+                          'button',
+                          { type: 'button', style: styles.linkButton, onClick: chooseInputFile },
+                          t('pickFile'),
+                        ),
                     text
                       ? h(
                           'button',
@@ -1082,6 +1143,28 @@ window.__ModuleLoader__.load({
                 )
               : null,
           ),
+
+          panel === 'files'
+            ? h(
+                'div',
+                { style: styles.overlay, onClick: () => setPanel(null) },
+                h(
+                  'div',
+                  { style: styles.overlayCard, onClick: (event) => event.stopPropagation() },
+                  h('div', { style: { margin: '0 0 10px', fontSize: 15, fontFamily: C.head } }, t('pickFile')),
+                  fileList.map((file) =>
+                    h(
+                      'div',
+                      { key: file.path, style: { ...styles.listRow, cursor: 'pointer' }, onClick: () => loadPickedFile(file), title: file.path },
+                      h('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, file.name),
+                      h('span', { style: { color: C.muted, fontSize: 11, flexShrink: 0 } }, t('open')),
+                    ),
+                  ),
+                  h('div', { style: { marginTop: 12, textAlign: 'right' } },
+                    h('button', { type: 'button', style: styles.storeBtn, onClick: () => setPanel(null) }, '×')),
+                ),
+              )
+            : null,
 
           h(
             'div',

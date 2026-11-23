@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.11.0 — 2026-11-23
+
+- Dragging is not reliable in this shell (a drop can arrive with no file), so the
+  box has two more ways in: a "choose file" link that uses DSH's native folder
+  picker and then lists the documents inside it, and pasting a file copied in
+  Finder. Dragging still works where the platform allows it.
+
 ## 1.10.4 — 2026-11-21
 
 - The result of a drop is shown in a banner directly under the box, not in the
