@@ -627,6 +627,7 @@ window.__ModuleLoader__.load({
       const [pdfTitle, setPdfTitle] = React.useState('')
 
       const dragDepth = React.useRef(0)
+      const zoneRef = React.useRef(null)
       const abortRef = React.useRef(null)
       const fileRef = React.useRef(null)
       const accRef = React.useRef('')
@@ -634,10 +635,11 @@ window.__ModuleLoader__.load({
       const expectedRef = React.useRef(2000)
       const hostRef = React.useRef(null)
 
-      // The shell can swallow drops aimed at a child element, so listen on the
-      // window in the capture phase: this runs before any handler that might stop
-      // the event on its way down.
+      // Attached to the box itself, in the capture phase: the textarea inside it
+      // cannot swallow the drop, and nothing outside the box is a drop target.
       React.useEffect(() => {
+        const node = zoneRef.current
+        if (!node) return
         const isFileDrag = (event) => {
           const types = event.dataTransfer && event.dataTransfer.types
           return Boolean(types && Array.prototype.includes.call(types, 'Files'))
@@ -649,12 +651,9 @@ window.__ModuleLoader__.load({
           setDragging(true)
         }
         const onDragLeave = (event) => {
-          if (event.relatedTarget === null) setDragging(false)
+          if (!node.contains(event.relatedTarget)) setDragging(false)
         }
         const onDropEvent = (event) => {
-          if (!isFileDrag(event) && !(event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length)) {
-            return
-          }
           event.preventDefault()
           event.stopPropagation()
           setDragging(false)
@@ -665,17 +664,17 @@ window.__ModuleLoader__.load({
           }
           readDropped(file)
         }
-        window.addEventListener('dragenter', onDragOver, true)
-        window.addEventListener('dragover', onDragOver, true)
-        window.addEventListener('dragleave', onDragLeave, true)
-        window.addEventListener('drop', onDropEvent, true)
+        node.addEventListener('dragenter', onDragOver, true)
+        node.addEventListener('dragover', onDragOver, true)
+        node.addEventListener('dragleave', onDragLeave, true)
+        node.addEventListener('drop', onDropEvent, true)
         return () => {
-          window.removeEventListener('dragenter', onDragOver, true)
-          window.removeEventListener('dragover', onDragOver, true)
-          window.removeEventListener('dragleave', onDragLeave, true)
-          window.removeEventListener('drop', onDropEvent, true)
+          node.removeEventListener('dragenter', onDragOver, true)
+          node.removeEventListener('dragover', onDragOver, true)
+          node.removeEventListener('dragleave', onDragLeave, true)
+          node.removeEventListener('drop', onDropEvent, true)
         }
-      }, [])
+      }, [phase])   // the box only exists in the input phase; re-attach when it returns
 
       React.useEffect(
         () => () => {
@@ -990,6 +989,7 @@ window.__ModuleLoader__.load({
             ? h(
                 'div',
                 {
+                  ref: zoneRef,
                   style: {
                     ...styles.zone,
                     position: 'relative',
@@ -1014,18 +1014,6 @@ window.__ModuleLoader__.load({
                   onDragLeave: () => {
                     dragDepth.current = Math.max(0, dragDepth.current - 1)
                     if (dragDepth.current === 0) setDragging(false)
-                  },
-                  onDrop: async (event) => {
-                    event.preventDefault()
-                    dragDepth.current = 0
-                    setDragging(false)
-                    const list = event.dataTransfer && event.dataTransfer.files
-                    const file = list && list.length ? list[0] : null
-                    if (!file) {
-                      setStatus({ ok: false, text: t('noFile') })
-                      return
-                    }
-                    await readDropped(file)
                   },
                 },
                 !text

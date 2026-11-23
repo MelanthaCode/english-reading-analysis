@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.11.2 — 2026-11-23
+
+- The drop target is the box again, not the whole page: listeners sit on that
+  element in the capture phase, and re-attach when the box returns after a result.
+
 ## 1.11.1 — 2026-11-23
 
 - Dropping a file is handled at the window in the capture phase, so a handler on a
