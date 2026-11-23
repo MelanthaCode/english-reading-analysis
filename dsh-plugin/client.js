@@ -609,8 +609,6 @@ window.__ModuleLoader__.load({
       const [text, setText] = React.useState('')
       const [fileName, setFileName] = React.useState('')
       const [fileMeta, setFileMeta] = React.useState(null)
-      const [fileList, setFileList] = React.useState([])
-      const [panel, setPanel] = React.useState(null)
       const [images, setImages] = React.useState([])
       const [dragging, setDragging] = React.useState(false)
       const [phase, setPhase] = React.useState('input')
@@ -635,6 +633,49 @@ window.__ModuleLoader__.load({
       const startRef = React.useRef(0)
       const expectedRef = React.useRef(2000)
       const hostRef = React.useRef(null)
+
+      // The shell can swallow drops aimed at a child element, so listen on the
+      // window in the capture phase: this runs before any handler that might stop
+      // the event on its way down.
+      React.useEffect(() => {
+        const isFileDrag = (event) => {
+          const types = event.dataTransfer && event.dataTransfer.types
+          return Boolean(types && Array.prototype.includes.call(types, 'Files'))
+        }
+        const onDragOver = (event) => {
+          if (!isFileDrag(event)) return
+          event.preventDefault()
+          if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy'
+          setDragging(true)
+        }
+        const onDragLeave = (event) => {
+          if (event.relatedTarget === null) setDragging(false)
+        }
+        const onDropEvent = (event) => {
+          if (!isFileDrag(event) && !(event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length)) {
+            return
+          }
+          event.preventDefault()
+          event.stopPropagation()
+          setDragging(false)
+          const file = fileFromTransfer(event.dataTransfer)
+          if (!file) {
+            setStatus({ ok: false, text: t('noFile') })
+            return
+          }
+          readDropped(file)
+        }
+        window.addEventListener('dragenter', onDragOver, true)
+        window.addEventListener('dragover', onDragOver, true)
+        window.addEventListener('dragleave', onDragLeave, true)
+        window.addEventListener('drop', onDropEvent, true)
+        return () => {
+          window.removeEventListener('dragenter', onDragOver, true)
+          window.removeEventListener('dragover', onDragOver, true)
+          window.removeEventListener('dragleave', onDragLeave, true)
+          window.removeEventListener('drop', onDropEvent, true)
+        }
+      }, [])
 
       React.useEffect(
         () => () => {
@@ -723,47 +764,6 @@ window.__ModuleLoader__.load({
       const addFavorite = async () => {
         const ok = await persist('favorites', documentFor(fragment, rawCss), topicOf(fragment))
         setStoreNote(ok ? { ok: true, text: t('savedFav') } : { ok: false, text: t('storageNone') })
-      }
-
-      /** Pick a folder, then one document inside it: this shell has no file dialog. */
-      const chooseInputFile = async () => {
-        setStatus({ ok: true, text: t('opening') })
-        const dir = await pickDir()
-        if (!dir) {
-          setStatus(null)
-          return
-        }
-        const { ok, status, data } = await postJson('/list-folder', { dir })
-        if (status === 405) {
-          setStatus({ ok: false, text: t('staleHost') })
-          return
-        }
-        if (!ok) {
-          setStatus({ ok: false, text: data.error || t('readFailed') })
-          return
-        }
-        if (!data.files || !data.files.length) {
-          setStatus({ ok: false, text: t('emptyFolder') })
-          return
-        }
-        setFileList(data.files)
-        setPanel('files')
-        setStatus(null)
-      }
-
-      const loadPickedFile = async (file) => {
-        setPanel(null)
-        setStatus({ ok: true, text: `${t('received')} ${file.name}，${t('parsing')}…` })
-        const { ok, status, data } = await postJson('/extract-path', { path: file.path })
-        if (status === 405) {
-          setStatus({ ok: false, text: t('staleHost') })
-          return
-        }
-        if (!ok || data.error) {
-          setStatus({ ok: false, text: `${file.name} ${t('readFail')}：${data.error || `HTTP ${status}`}` })
-          return
-        }
-        applyExtract(data, file.name)
       }
 
       const applyExtract = (data, name, size) => {
@@ -1058,13 +1058,6 @@ window.__ModuleLoader__.load({
                     setFileName('')
                     setStatus(null)
                   },
-                  onPaste: async (event) => {
-                    const items = event.clipboardData && event.clipboardData.files
-                    if (items && items.length) {
-                      event.preventDefault()
-                      await readDropped(items[0])
-                    }
-                  },
                 }),
                 h(
                   'div',
@@ -1079,13 +1072,6 @@ window.__ModuleLoader__.load({
                   h(
                     'span',
                     { style: { display: 'flex', gap: 14, alignItems: 'center' } },
-                    text
-                      ? null
-                      : h(
-                          'button',
-                          { type: 'button', style: styles.linkButton, onClick: chooseInputFile },
-                          t('pickFile'),
-                        ),
                     text
                       ? h(
                           'button',
@@ -1143,28 +1129,6 @@ window.__ModuleLoader__.load({
                 )
               : null,
           ),
-
-          panel === 'files'
-            ? h(
-                'div',
-                { style: styles.overlay, onClick: () => setPanel(null) },
-                h(
-                  'div',
-                  { style: styles.overlayCard, onClick: (event) => event.stopPropagation() },
-                  h('div', { style: { margin: '0 0 10px', fontSize: 15, fontFamily: C.head } }, t('pickFile')),
-                  fileList.map((file) =>
-                    h(
-                      'div',
-                      { key: file.path, style: { ...styles.listRow, cursor: 'pointer' }, onClick: () => loadPickedFile(file), title: file.path },
-                      h('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, file.name),
-                      h('span', { style: { color: C.muted, fontSize: 11, flexShrink: 0 } }, t('open')),
-                    ),
-                  ),
-                  h('div', { style: { marginTop: 12, textAlign: 'right' } },
-                    h('button', { type: 'button', style: styles.storeBtn, onClick: () => setPanel(null) }, '×')),
-                ),
-              )
-            : null,
 
           h(
             'div',

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.11.1 — 2026-11-23
+
+- Dropping a file is handled at the window in the capture phase, so a handler on a
+  child element (or the shell) can no longer swallow it, and the file is taken
+  from `dataTransfer.items` when `files` comes back empty. The picker and paste
+  fallbacks are gone: dragging is the only way in.
+
 ## 1.11.0 — 2026-11-23
 
 - Dragging is not reliable in this shell (a drop can arrive with no file), so the
