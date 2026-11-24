@@ -42,6 +42,9 @@ jobs:
       - name: Render the panel against a stub React
         run: node tests/render-smoke.mjs
 
+      - name: Simulate a file drop
+        run: node tests/drop-smoke.mjs
+
       - name: Engine dispatch unit tests
         shell: bash
         run: python tests/test_engines.py

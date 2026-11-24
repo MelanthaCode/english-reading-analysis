@@ -587,6 +587,21 @@ window.__ModuleLoader__.load({
       return { ok: response.ok, status: response.status, data }
     }
 
+    /** First file in a drag, whichever way the platform exposes it. */
+    const fileFromTransfer = (transfer) => {
+      if (!transfer) return null
+      if (transfer.files && transfer.files.length) return transfer.files[0]
+      if (transfer.items && transfer.items.length) {
+        for (const item of transfer.items) {
+          if (item.kind === 'file') {
+            const file = item.getAsFile && item.getAsFile()
+            if (file) return file
+          }
+        }
+      }
+      return null
+    }
+
     const formatBytes = (bytes) => {
       const n = Number(bytes || 0)
       if (n < 1024) return `${n} B`
@@ -791,6 +806,46 @@ window.__ModuleLoader__.load({
           setImages([])
           setText(data.text || '')
           setStatus({ ok: true, text: `${name} · ${label} · ${(data.text || '').length} ${t('charsReady')}` })
+        }
+      }
+
+      /** Read a dropped file through the Host, reporting size and outcome. */
+      const readDropped = async (file) => {
+        const sizeLabel = formatBytes(file.size)
+        setFileName(file.name)
+        setFileMeta({ size: file.size })
+        setStatus({ ok: true, text: `${t('received')} ${file.name}（${sizeLabel}），${t('parsing')}…` })
+        try {
+          const buffer = await file.arrayBuffer()
+          const bytes = new Uint8Array(buffer)
+          let binary = ''
+          const chunk = 0x8000
+          for (let i = 0; i < bytes.length; i += chunk) {
+            binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk))
+          }
+          const response = await fetch(`${API}/extract`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ name: file.name, data: btoa(binary) }),
+          })
+          const body = await response.json().catch(() => ({}))
+          if (response.status === 405) {
+            setStatus({ ok: false, text: `${file.name}（${sizeLabel}）· ${t('staleHost')}` })
+            return
+          }
+          if (!response.ok || body.error) {
+            setStatus({
+              ok: false,
+              text: `${file.name}（${sizeLabel}）${t('readFail')}：${body.error || `HTTP ${response.status}`}`,
+            })
+            return
+          }
+          applyExtract(body, file.name, file.size)
+        } catch (error) {
+          setStatus({
+            ok: false,
+            text: `${file.name}（${sizeLabel}）${t('readFail')}：${(error && error.message) || error}`,
+          })
         }
       }
 

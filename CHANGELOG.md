@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.11.3 — 2026-11-24
+
+- Fixed the drop path: `fileFromTransfer` and `readDropped` had been dropped by an
+  earlier edit (the anchors for those insertions silently missed), so a drop threw
+  a ReferenceError before anything could be reported. Both are back.
+- Added `tests/drop-smoke.mjs`, which mounts the panel against a stub React,
+  dispatches a real drop event and asserts that `/extract` is called and the text
+  lands in state. Runs in CI next to the render smoke test.
+
 ## 1.11.2 — 2026-11-23
 
 - The drop target is the box again, not the whole page: listeners sit on that
