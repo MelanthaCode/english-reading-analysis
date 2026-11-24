@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.12.0 — 2026-11-24
+
+- Restored the progress timer, which an earlier refactor had removed: the bar sat
+  at 1% and the elapsed clock at 0s for the whole run. It now advances by
+  characters received and by elapsed time, never going backwards, and stops at 96%
+  until the stream ends.
+- A loaded file turns the box green instead of printing a separate banner; the
+  text itself, the footer (name · size · characters) and the green border carry it.
+- History and favourites are hidden while an analysis is running.
+
 ## 1.11.3 — 2026-11-24
 
 - Fixed the drop path: `fileFromTransfer` and `readDropped` had been dropped by an

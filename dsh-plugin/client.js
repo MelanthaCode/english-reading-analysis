@@ -626,6 +626,7 @@ window.__ModuleLoader__.load({
       const [fileMeta, setFileMeta] = React.useState(null)
       const [images, setImages] = React.useState([])
       const [dragging, setDragging] = React.useState(false)
+      const [loaded, setLoaded] = React.useState(false)
       const [phase, setPhase] = React.useState('input')
       const [fragment, setFragment] = React.useState('')
       const [fonts, setFonts] = React.useState('')
@@ -716,6 +717,21 @@ window.__ModuleLoader__.load({
         refreshLists()
       }, [refreshLists])
 
+      // Advance the bar while the stream is open: by characters received, and by
+      // time so a slow first token still moves it. Monotonic, capped at 96%.
+      React.useEffect(() => {
+        if (phase !== 'running') return
+        const id = setInterval(() => {
+          const elapsed = (Date.now() - startRef.current) / 1000
+          setSeconds(Math.floor(elapsed))
+          const byChars = accRef.current.length / Math.max(1, expectedRef.current)
+          const byTime = (1 - Math.exp(-elapsed / 38)) * 0.92
+          const next = Math.min(96, Math.round(Math.max(byChars, byTime) * 100))
+          setPct((prev) => Math.max(prev, next))
+        }, 500)
+        return () => clearInterval(id)
+      }, [phase])
+
       const chooseFolder = async () => {
         setStoreNote({ ok: true, text: t('opening') })
         const dir = await pickDir()
@@ -795,18 +811,16 @@ window.__ModuleLoader__.load({
         setFileMeta(size ? { size } : null)
         const charCount = (data.text || '').length
         if (!charCount && !(data.images && data.images.length)) {
-          setStatus({ ok: false, text: `${name} · ${t('emptyRead')}` })
+          setLoaded(false)
+          setStatus({ ok: false, text: `${name} · ${label} · ${t('emptyRead')}` })
           return
         }
-        if (data.images && data.images.length) {
-          setImages(data.images)
-          setText(data.text || '')
-          setStatus({ ok: true, text: `${name} · ${label} · ${data.images.length} ${t('pagesLoaded')}` })
-        } else {
-          setImages([])
-          setText(data.text || '')
-          setStatus({ ok: true, text: `${name} · ${label} · ${(data.text || '').length} ${t('charsReady')}` })
-        }
+        setImages(data.images || [])
+        setText(data.text || '')
+        setLoaded(true)
+        // No banner on success: the text itself, the green box and the footer
+        // (name · size · characters) already say what happened.
+        setStatus(null)
       }
 
       /** Read a dropped file through the Host, reporting size and outcome. */
@@ -1050,9 +1064,13 @@ window.__ModuleLoader__.load({
                     position: 'relative',
                     borderStyle: 'dashed',
                     borderWidth: 1.5,
-                    borderColor: dragging ? C.coral : '#d9c9b2',
-                    background: dragging ? '#fdf1ec' : C.paper2,
-                    boxShadow: dragging ? '0 0 0 4px rgba(249,86,78,.10)' : 'none',
+                    borderColor: dragging ? C.coral : loaded ? 'rgba(152,203,95,.85)' : '#d9c9b2',
+                    background: dragging ? '#fdf1ec' : loaded ? 'rgba(152,203,95,.07)' : C.paper2,
+                    boxShadow: dragging
+                      ? '0 0 0 4px rgba(249,86,78,.10)'
+                      : loaded
+                      ? '0 0 0 4px rgba(152,203,95,.12)'
+                      : 'none',
                     transform: dragging ? 'scale(1.004)' : 'scale(1)',
                     transition: 'border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease',
                   },
@@ -1099,6 +1117,8 @@ window.__ModuleLoader__.load({
                   onChange: (event) => {
                     setText(event.target.value)
                     setFileName('')
+                    setFileMeta(null)
+                    setLoaded(false)
                     setStatus(null)
                   },
                 }),
@@ -1173,22 +1193,24 @@ window.__ModuleLoader__.load({
               : null,
           ),
 
-          h(
-            'div',
-            { style: styles.searchWrap },
-            h('input', {
-              style: styles.searchWide,
-              value: query,
-              placeholder: t('searchAll'),
-              onChange: (event) => setQuery(event.target.value),
-            }),
-            h(
-              'div',
-              { style: styles.columns },
-              renderList(t('history'), hist, 'history'),
-              renderList(t('favorites'), favs, 'favorites'),
-            ),
-          ),
+          phase === 'running'
+            ? null
+            : h(
+                'div',
+                { style: styles.searchWrap },
+                h('input', {
+                  style: styles.searchWide,
+                  value: query,
+                  placeholder: t('searchAll'),
+                  onChange: (event) => setQuery(event.target.value),
+                }),
+                h(
+                  'div',
+                  { style: styles.columns },
+                  renderList(t('history'), hist, 'history'),
+                  renderList(t('favorites'), favs, 'favorites'),
+                ),
+              ),
         ),
       )
     }
