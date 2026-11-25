@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.13.4 — 2026-11-25
+
+- Fixed the blank box after a file was read: the centred summary block had never
+  been inserted (its anchor missed) while the textarea was already being hidden for
+  that state, so the box went green and empty.
+- Added `tests/state-smoke.mjs`, which renders the panel in four states — empty,
+  scanned file loaded, text loaded, failed — and asserts each shows its expected
+  content. Runs in CI.
+
 ## 1.13.3 — 2026-11-25
 
 - Once a file is read, the icon row and its prompt are gone: the middle of the box

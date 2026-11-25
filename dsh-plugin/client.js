@@ -1257,6 +1257,25 @@ window.__ModuleLoader__.load({
                       h('span', null, dragging ? t('dropNow') : t('dropHint')),
                     )
                   : null,
+                zoneError || (loaded && !text)
+                  ? h(
+                      'div',
+                      { style: styles.zoneCenter },
+                      zoneError
+                        ? h('div', { style: styles.zoneErrorText }, (status && status.text) || t('readFail'))
+                        : h(
+                            'div',
+                            { style: styles.zoneCenterBody },
+                            h('div', { style: styles.zoneCenterTitle }, t('loadedTitle')),
+                            h(
+                              'div',
+                              { style: styles.zoneCenterMeta },
+                              `${fileName}${fileMeta ? ` · ${formatBytes(fileMeta.size)}` : ''}` +
+                                (images.length ? ` · ${images.length} ${t('pagesLoaded')}` : ''),
+                            ),
+                          ),
+                    )
+                  : null,
                 busy || reading ? null : h('textarea', {
                   style: styles.zoneInput,
                   value: text,

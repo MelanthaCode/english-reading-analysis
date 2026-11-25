@@ -45,6 +45,9 @@ jobs:
       - name: Simulate a file drop
         run: node tests/drop-smoke.mjs
 
+      - name: Render each panel state
+        run: node tests/state-smoke.mjs
+
       - name: Engine dispatch unit tests
         shell: bash
         run: python tests/test_engines.py
