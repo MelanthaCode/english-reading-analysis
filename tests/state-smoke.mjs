@@ -24,6 +24,7 @@ const cases = {
   '扫描件已载入': { 0: '', 1: 'scan.pdf', 2: { size: 2180000 }, 3: [{ mediaType: 'image/png', data: 'x' }], 4: false, 5: true, 6: false, 7: false, 8: 'input' },
   '文本已载入': { 0: 'Hello world.', 1: 'a.txt', 2: { size: 12 }, 3: [], 4: false, 5: true, 6: false, 7: false, 8: 'input' },
   '失败': { 0: '', 1: 'bad.pdf', 2: { size: 10 }, 3: [], 4: false, 5: false, 6: false, 7: true, 8: 'input' },
+  '分析中': { 0: '', 1: 'scan.pdf', 2: { size: 2180000 }, 3: [{ mediaType: 'image/png', data: 'x' }], 4: false, 5: true, 6: false, 7: false, 8: 'running', 13: 42 },
 }
 for (const [label, s] of Object.entries(cases)) {
   seed = { ...s }; seq = 0
@@ -41,9 +42,12 @@ for (const [label, s] of Object.entries(cases)) {
       ;(n.children || []).forEach(collect)
     }
     collect(tree)
-    const expect = { '空': '把英文粘贴到这里', '扫描件已载入': '已载入', '失败': '读取失败' }
+    const expect = { '空': '把英文粘贴到这里', '扫描件已载入': '已载入', '失败': '读取失败', '分析中': '正在分析' }
+    const forbid = { '分析中': '已载入' }
     const want = expect[label]
-    const ok = want ? flat.some((t) => String(t).includes(want)) : true
+    const banned = forbid[label]
+    const ok = (want ? flat.some((t) => String(t).includes(want)) : true) &&
+      (!banned || !flat.some((t) => String(t).includes(banned)))
     console.log(`${label.padEnd(8)} ${ok ? '✓' : '✗ 期望包含'}${want || ''}`)
     if (!ok) process.exitCode = 1
   } catch (e) {

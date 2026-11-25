@@ -1258,7 +1258,7 @@ window.__ModuleLoader__.load({
                       h('span', null, dragging ? t('dropNow') : t('dropHint')),
                     )
                   : null,
-                zoneError || (loaded && !text)
+                !busy && !reading && (zoneError || (loaded && !text))
                   ? h(
                       'div',
                       { style: styles.zoneCenter },

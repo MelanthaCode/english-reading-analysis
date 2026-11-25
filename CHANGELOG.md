@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.13.6 — 2026-11-25
+
+- Starting an analysis no longer draws the loaded summary on top of the progress
+  bar: the summary is hidden while the run is in flight. The state test now checks
+  that "已载入" is absent from the running state.
+
 ## 1.13.5 — 2026-11-25
 
 - The loaded summary and the failure reason are centred against the whole box
