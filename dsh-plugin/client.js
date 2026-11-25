@@ -1355,6 +1355,19 @@ window.__ModuleLoader__.load({
             phase === 'result'
               ? h(
                   'button',
+                  {
+                    type: 'button',
+                    style: { ...styles.star, color: isFavorite ? C.gold : C.faint },
+                    onClick: toggleFavorite,
+                    title: isFavorite ? t('favorited') : t('favorite'),
+                    'aria-label': isFavorite ? t('favorited') : t('favorite'),
+                  },
+                  isFavorite ? '★' : '☆',
+                )
+              : null,
+            phase === 'result'
+              ? h(
+                  'button',
                   { type: 'button', style: styles.primary, onClick: downloadPdf, disabled: !fragment.trim() },
                   t('download'),
                 )

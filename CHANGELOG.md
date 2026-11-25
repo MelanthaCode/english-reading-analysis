@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.13.9 — 2026-11-25
+
+- The star is back in the result row: ☆ saves the analysis to favourites, ★ takes
+  it out. The toggle logic existed but its button had been lost in an edit.
+- The state test now renders the result state and requires the star to be there.
+
 ## 1.13.8 — 2026-11-25
 
 - The run progress is a full-width row under the storage line again, with the
