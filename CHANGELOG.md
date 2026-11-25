@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.12.2 — 2026-11-25
+
+- A stream that ends with nothing in it reports "the model returned nothing"
+  instead of switching to an empty result view.
+
 ## 1.12.1 — 2026-11-25
 
 - Restored the two pieces that made an analysis appear to hang: `loadCss` (called

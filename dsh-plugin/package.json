@@ -1,6 +1,6 @@
 {
   "name": "dsh-skill-english-reading",
-  "version": "1.12.1",
+  "version": "1.12.2",
   "type": "module",
   "description": "English reading analysis as a DSH plugin: turns English passages and exam papers into Chinese analysis with a print-ready A4 PDF. Registers the skill into the Harness skill catalog on install.",
   "exports": {

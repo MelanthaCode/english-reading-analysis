@@ -88,6 +88,7 @@ window.__ModuleLoader__.load({
       kindImage: '图片',
       readFail: '读取失败',
       receivedChars: '已收到',
+      emptyResult: '模型没有返回任何内容，请重试',
       noFile: '没有收到文件——当前环境可能不允许拖放，请点「选择文件」',
       pickFile: '选择文件',
       or: '或',
@@ -155,6 +156,7 @@ window.__ModuleLoader__.load({
       kindImage: 'image',
       readFail: 'Could not read',
       receivedChars: 'received',
+      emptyResult: 'The model returned nothing — try again',
       noFile: 'No file received — dragging may be blocked here; use “Choose file”',
       pickFile: 'Choose file',
       or: 'or',
@@ -989,6 +991,10 @@ window.__ModuleLoader__.load({
                 throw new Error(event.error)
               }
             }
+          }
+
+          if (!accRef.current.trim()) {
+            throw new Error(t('emptyResult'))
           }
 
           setFragment(accRef.current)
