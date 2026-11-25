@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.13.2 — 2026-11-25
+
+- The box turns green the moment a file hovers over it and stays green through
+  parsing and a successful load, which is the order the interaction reads in. A
+  failure — unreadable format, no text, missing route — flips it to coral with the
+  reason underneath.
+
 ## 1.13.1 — 2026-11-25
 
 - The box keeps one height across empty, reading and running states, so it no

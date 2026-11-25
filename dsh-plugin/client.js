@@ -661,6 +661,7 @@ window.__ModuleLoader__.load({
       const [dragging, setDragging] = React.useState(false)
       const [loaded, setLoaded] = React.useState(false)
       const [reading, setReading] = React.useState(false)
+      const [zoneError, setZoneError] = React.useState(false)
       const [phase, setPhase] = React.useState('input')
       const [fragment, setFragment] = React.useState('')
       const [fonts, setFonts] = React.useState('')
@@ -875,12 +876,14 @@ window.__ModuleLoader__.load({
         const charCount = (data.text || '').length
         if (!charCount && !(data.images && data.images.length)) {
           setLoaded(false)
+          setZoneError(true)
           setStatus({ ok: false, text: `${name} · ${label} · ${t('emptyRead')}` })
           return
         }
         setImages(data.images || [])
         setText(data.text || '')
         setLoaded(true)
+        setZoneError(false)
         // No banner on success: the text itself, the green box and the footer
         // (name · size · characters) already say what happened.
         setStatus(null)
@@ -916,6 +919,7 @@ window.__ModuleLoader__.load({
       /** Read a dropped file through the Host, reporting size and outcome. */
       const readDropped = async (file) => {
         const sizeLabel = formatBytes(file.size)
+        setZoneError(false)
         setReading(true)
         setFileName(file.name)
         setFileMeta({ size: file.size })
@@ -935,10 +939,12 @@ window.__ModuleLoader__.load({
           })
           const body = await response.json().catch(() => ({}))
           if (response.status === 405) {
+            setZoneError(true)
             setStatus({ ok: false, text: `${file.name}（${sizeLabel}）· ${t('staleHost')}` })
             return
           }
           if (!response.ok || body.error) {
+            setZoneError(true)
             setStatus({
               ok: false,
               text: `${file.name}（${sizeLabel}）${t('readFail')}：${body.error || `HTTP ${response.status}`}`,
@@ -947,6 +953,7 @@ window.__ModuleLoader__.load({
           }
           applyExtract(body, file.name, file.size)
         } catch (error) {
+          setZoneError(true)
           setStatus({
             ok: false,
             text: `${file.name}（${sizeLabel}）${t('readFail')}：${(error && error.message) || error}`,
@@ -1147,11 +1154,19 @@ window.__ModuleLoader__.load({
                     position: 'relative',
                     borderStyle: 'dashed',
                     borderWidth: 1.5,
-                    borderColor: dragging ? C.coral : loaded ? 'rgba(152,203,95,.85)' : '#d9c9b2',
-                    background: dragging ? '#fdf1ec' : loaded ? 'rgba(152,203,95,.07)' : C.paper2,
-                    boxShadow: dragging
+                    borderColor: zoneError
+                      ? C.coral
+                      : dragging || reading || loaded
+                      ? 'rgba(152,203,95,.85)'
+                      : '#d9c9b2',
+                    background: zoneError
+                      ? '#fdf1ec'
+                      : dragging || reading || loaded
+                      ? 'rgba(152,203,95,.07)'
+                      : C.paper2,
+                    boxShadow: zoneError
                       ? '0 0 0 4px rgba(249,86,78,.10)'
-                      : loaded
+                      : dragging || reading || loaded
                       ? '0 0 0 4px rgba(152,203,95,.12)'
                       : 'none',
                     transform: dragging ? 'scale(1.004)' : 'scale(1)',
@@ -1208,7 +1223,7 @@ window.__ModuleLoader__.load({
                 !text && !busy && !reading
                   ? h(
                       'div',
-                      { style: { ...styles.dropHint, color: dragging ? C.coral : C.muted } },
+                      { style: { ...styles.dropHint, color: dragging ? '#5f8f2e' : C.muted } },
                       h(
                         'div',
                         {
@@ -1235,6 +1250,7 @@ window.__ModuleLoader__.load({
                     setFileName('')
                     setFileMeta(null)
                     setLoaded(false)
+                    setZoneError(false)
                     setStatus(null)
                   },
                 }),
