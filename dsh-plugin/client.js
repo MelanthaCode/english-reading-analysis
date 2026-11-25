@@ -425,7 +425,8 @@ window.__ModuleLoader__.load({
         transition: 'color 160ms ease, background 160ms ease',
       },
       zoneCenter: {
-        flex: 1,
+        position: 'absolute',
+        inset: 0,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

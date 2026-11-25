@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.13.5 — 2026-11-25
+
+- The loaded summary and the failure reason are centred against the whole box
+  (absolute inset), instead of sitting at the top when the box grew taller than
+  the min-height.
+
 ## 1.13.4 — 2026-11-25
 
 - Fixed the blank box after a file was read: the centred summary block had never
