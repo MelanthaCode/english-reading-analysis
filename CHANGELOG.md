@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.13.7 — 2026-11-25
+
+- While the analysis runs, the dashed frame and its green fill are gone: the
+  progress bar and the elapsed clock sit on the page background by themselves.
+
 ## 1.13.6 — 2026-11-25
 
 - Starting an analysis no longer draws the loaded summary on top of the progress

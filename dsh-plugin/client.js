@@ -1170,17 +1170,24 @@ window.__ModuleLoader__.load({
                     position: 'relative',
                     borderStyle: 'dashed',
                     borderWidth: 1.5,
-                    borderColor: zoneError
+                    // While the model runs, the progress stands on its own: no frame.
+                    borderColor: busy
+                      ? 'transparent'
+                      : zoneError
                       ? C.coral
                       : dragging || reading || loaded
                       ? 'rgba(152,203,95,.85)'
                       : '#d9c9b2',
-                    background: zoneError
+                    background: busy
+                      ? 'transparent'
+                      : zoneError
                       ? '#fdf1ec'
                       : dragging || reading || loaded
                       ? 'rgba(152,203,95,.07)'
                       : C.paper2,
-                    boxShadow: zoneError
+                    boxShadow: busy
+                      ? 'none'
+                      : zoneError
                       ? '0 0 0 4px rgba(249,86,78,.10)'
                       : dragging || reading || loaded
                       ? '0 0 0 4px rgba(152,203,95,.12)'
