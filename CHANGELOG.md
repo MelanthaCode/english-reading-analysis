@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.13.8 — 2026-11-25
+
+- The run progress is a full-width row under the storage line again, with the
+  percentage and the elapsed clock on either side; the box is not drawn while the
+  model runs.
+
 ## 1.13.7 — 2026-11-25
 
 - While the analysis runs, the dashed frame and its green fill are gone: the

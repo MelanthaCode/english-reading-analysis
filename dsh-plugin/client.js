@@ -1160,7 +1160,25 @@ window.__ModuleLoader__.load({
             h('span', { style: { opacity: 0.75 } }, storeDir ? t('changeFolderHint') : t('pickFolderHint')),
           ),
 
-          phase !== 'result'
+          busy
+            ? h(
+                'div',
+                { style: { display: 'flex', flexDirection: 'column', gap: 0 } },
+                h(
+                  'div',
+                  { style: styles.barHead },
+                  h(
+                    'span',
+                    null,
+                    `${t('running')} · ${pct}%${fragment ? ` · ${t('receivedChars')} ${fragment.length}` : ''}`,
+                  ),
+                  h('span', null, `${t('elapsed')} ${seconds}s`),
+                ),
+                h('div', { style: styles.track }, h('div', { style: { ...styles.fill, width: `${pct}%` } })),
+              )
+            : null,
+
+          phase === 'input'
             ? h(
                 'div',
                 {
@@ -1170,24 +1188,17 @@ window.__ModuleLoader__.load({
                     position: 'relative',
                     borderStyle: 'dashed',
                     borderWidth: 1.5,
-                    // While the model runs, the progress stands on its own: no frame.
-                    borderColor: busy
-                      ? 'transparent'
-                      : zoneError
+                    borderColor: zoneError
                       ? C.coral
                       : dragging || reading || loaded
                       ? 'rgba(152,203,95,.85)'
                       : '#d9c9b2',
-                    background: busy
-                      ? 'transparent'
-                      : zoneError
+                    background: zoneError
                       ? '#fdf1ec'
                       : dragging || reading || loaded
                       ? 'rgba(152,203,95,.07)'
                       : C.paper2,
-                    boxShadow: busy
-                      ? 'none'
-                      : zoneError
+                    boxShadow: zoneError
                       ? '0 0 0 4px rgba(249,86,78,.10)'
                       : dragging || reading || loaded
                       ? '0 0 0 4px rgba(152,203,95,.12)'
@@ -1210,7 +1221,7 @@ window.__ModuleLoader__.load({
                     if (dragDepth.current === 0) setDragging(false)
                   },
                 },
-                busy || reading
+                reading
                   ? h(
                       'div',
                       { style: styles.zoneRunning },
@@ -1284,7 +1295,7 @@ window.__ModuleLoader__.load({
                           ),
                     )
                   : null,
-                busy || reading ? null : h('textarea', {
+                reading ? null : h('textarea', {
                   style: styles.zoneInput,
                   value: text,
                   onChange: (event) => {
