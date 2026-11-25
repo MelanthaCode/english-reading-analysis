@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.13.3 — 2026-11-25
+
+- Once a file is read, the icon row and its prompt are gone: the middle of the box
+  shows either the loaded summary (name · size · pages, for scans) or the failure
+  reason, centred. Text that was extracted still fills the box with the footer
+  keeping its name, size and character count.
+
 ## 1.13.2 — 2026-11-25
 
 - The box turns green the moment a file hovers over it and stays green through

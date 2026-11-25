@@ -89,6 +89,7 @@ window.__ModuleLoader__.load({
       readFail: '读取失败',
       receivedChars: '已收到',
       emptyResult: '模型没有返回任何内容，请重试',
+      loadedTitle: '已载入',
       noFile: '没有收到文件——当前环境可能不允许拖放，请点「选择文件」',
       pickFile: '选择文件',
       or: '或',
@@ -157,6 +158,7 @@ window.__ModuleLoader__.load({
       readFail: 'Could not read',
       receivedChars: 'received',
       emptyResult: 'The model returned nothing — try again',
+      loadedTitle: 'Loaded',
       noFile: 'No file received — dragging may be blocked here; use “Choose file”',
       pickFile: 'Choose file',
       or: 'or',
@@ -422,6 +424,19 @@ window.__ModuleLoader__.load({
         justifyContent: 'center',
         transition: 'color 160ms ease, background 160ms ease',
       },
+      zoneCenter: {
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '0 56px',
+        textAlign: 'center',
+        fontFamily: C.head,
+      },
+      zoneCenterBody: { display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' },
+      zoneCenterTitle: { fontSize: 15, color: '#4a6b28', letterSpacing: '.02em' },
+      zoneCenterMeta: { fontSize: 12.5, color: C.muted, wordBreak: 'break-all' },
+      zoneErrorText: { fontSize: 13.5, color: '#9d2700', lineHeight: 1.7, maxWidth: 620 },
       zoneRunning: {
         flex: 1,
         display: 'flex',
@@ -1220,7 +1235,7 @@ window.__ModuleLoader__.load({
                       ),
                     )
                   : null,
-                !text && !busy && !reading
+                !text && !busy && !reading && !loaded && !zoneError
                   ? h(
                       'div',
                       { style: { ...styles.dropHint, color: dragging ? '#5f8f2e' : C.muted } },
@@ -1254,7 +1269,9 @@ window.__ModuleLoader__.load({
                     setStatus(null)
                   },
                 }),
-                h(
+                zoneError || (loaded && !text)
+                  ? null
+                  : h(
                   'div',
                   { style: styles.zoneFooter },
                   h(
@@ -1288,9 +1305,6 @@ window.__ModuleLoader__.load({
               )
             : null,
 
-          status && !status.ok
-            ? h('div', { style: styles.bannerErr }, status.text)
-            : null,
 
           fragment ? h('div', { ref: hostRef, style: styles.docHost }) : null,
 
