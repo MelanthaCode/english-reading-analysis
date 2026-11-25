@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.13.0 — 2026-11-25
+
+- History records itself on first run: when no folder is set yet, the Host creates
+  `~/Documents/ERA-英语阅读分析` and the bar shows that path, which can still be
+  changed.
+- Reading a file and running the analysis both happen inside the box, centred, with
+  the icon row hidden; the green "received" banner and the "分析完成" line are gone.
+  A failed read still shows its reason.
+- The result row has a star: ☆ adds the result to favourites, ★ removes it. Saves
+  use a stable file name so toggling never piles up duplicates.
+
 ## 1.12.2 — 2026-11-25
 
 - A stream that ends with nothing in it reports "the model returned nothing"

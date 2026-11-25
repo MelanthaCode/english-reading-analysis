@@ -407,6 +407,34 @@ window.__ModuleLoader__.load({
         fontFamily: C.head,
         padding: '2px 5px',
       },
+      star: {
+        border: `1px solid ${C.line}`,
+        background: C.paper2,
+        borderRadius: 8,
+        width: 40,
+        height: 40,
+        fontSize: 19,
+        lineHeight: 1,
+        cursor: 'pointer',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transition: 'color 160ms ease, background 160ms ease',
+      },
+      zoneRunning: {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 14,
+        padding: '40px 28px',
+        minHeight: 190,
+        fontFamily: C.head,
+        color: C.ink,
+      },
+      zoneRunningTitle: { fontSize: 14, letterSpacing: '.01em' },
+      zoneRunningMeta: { fontSize: 12, color: C.muted, fontVariantNumeric: 'tabular-nums' },
       bannerOk: {
         marginTop: 12,
         padding: '9px 12px',
@@ -631,6 +659,7 @@ window.__ModuleLoader__.load({
       const [images, setImages] = React.useState([])
       const [dragging, setDragging] = React.useState(false)
       const [loaded, setLoaded] = React.useState(false)
+      const [reading, setReading] = React.useState(false)
       const [phase, setPhase] = React.useState('input')
       const [fragment, setFragment] = React.useState('')
       const [fonts, setFonts] = React.useState('')
@@ -718,7 +747,22 @@ window.__ModuleLoader__.load({
       }, [])
 
       React.useEffect(() => {
-        refreshLists()
+        // First run: the Host creates Documents/ERA-英语阅读分析 so history works
+        // without a prompt; the bar shows the path and offers to change it.
+        ;(async () => {
+          const list = await postJson('/store/list')
+          if (list.ok && list.data.dir) {
+            setStoreDir(list.data.dir)
+            setHist(list.data.history || [])
+            setFavs(list.data.favorites || [])
+            return
+          }
+          const created = await postJson('/store/config', {})
+          if (created.ok) {
+            setStoreDir(created.data.dir)
+            refreshLists()
+          }
+        })()
       }, [refreshLists])
 
       // Advance the bar while the stream is open: by characters received, and by
@@ -751,9 +795,9 @@ window.__ModuleLoader__.load({
         setStoreNote(null)
       }
 
-      const persist = async (kind, html, topic) => {
+      const persist = async (kind, html, topic, name) => {
         if (!storeDir) return false
-        const name = `${stamp()}-${safeName(topic)}.html`
+        if (!name) name = `${stamp()}-${safeName(topic)}.html`
         const { ok } = await postJson('/store/write', { kind, name, html })
         if (ok) await refreshLists()
         return ok
@@ -795,9 +839,23 @@ window.__ModuleLoader__.load({
         await refreshLists()
       }
 
-      const addFavorite = async () => {
-        const ok = await persist('favorites', documentFor(fragment, rawCss), topicOf(fragment))
-        setStoreNote(ok ? { ok: true, text: t('savedFav') } : { ok: false, text: t('storageNone') })
+      const favoriteName = fragment ? `${safeName(topicOf(fragment))}.html` : ''
+      const isFavorite =
+        Boolean(favoriteName) &&
+        favs.some((item) => item.name === favoriteName || item.name.endsWith(`-${favoriteName}`))
+
+      const toggleFavorite = async () => {
+        if (!favoriteName) return
+        if (isFavorite) {
+          const existing = favs.find(
+            (item) => item.name === favoriteName || item.name.endsWith(`-${favoriteName}`),
+          )
+          if (existing) await removeSaved('favorites', existing.name)
+          setStoreNote(null)
+          return
+        }
+        const ok = await persist('favorites', documentFor(fragment, rawCss), topicOf(fragment), favoriteName)
+        setStoreNote(ok ? null : { ok: false, text: t('storageNone') })
       }
 
       const applyExtract = (data, name, size) => {
@@ -857,6 +915,7 @@ window.__ModuleLoader__.load({
       /** Read a dropped file through the Host, reporting size and outcome. */
       const readDropped = async (file) => {
         const sizeLabel = formatBytes(file.size)
+        setReading(true)
         setFileName(file.name)
         setFileMeta({ size: file.size })
         setStatus({ ok: true, text: `${t('received')} ${file.name}（${sizeLabel}），${t('parsing')}…` })
@@ -891,6 +950,8 @@ window.__ModuleLoader__.load({
             ok: false,
             text: `${file.name}（${sizeLabel}）${t('readFail')}：${(error && error.message) || error}`,
           })
+        } finally {
+          setReading(false)
         }
       }
 
@@ -1001,8 +1062,8 @@ window.__ModuleLoader__.load({
           setPct(100)
           setPhase('result')
           const topic = topicOf(accRef.current)
-          const saved = await persist('history', documentFor(accRef.current, rawCss), topic)
-          setStatus({ ok: true, text: saved ? `${t('ready')} · ${t('savedHistory')}` : t('ready') })
+          await persist('history', documentFor(accRef.current, rawCss), topic)
+          setStatus(null)
         } catch (error) {
           if (error && error.name === 'AbortError') {
             setStatus({ ok: false, text: t('stop') })
@@ -1075,21 +1136,7 @@ window.__ModuleLoader__.load({
             h('span', { style: { opacity: 0.75 } }, storeDir ? t('changeFolderHint') : t('pickFolderHint')),
           ),
 
-          busy
-            ? h(
-                'div',
-                { style: { display: 'flex', flexDirection: 'column', gap: 0 } },
-                h(
-                  'div',
-                  { style: styles.barHead },
-                  h('span', null, `${t('running')} · ${pct}%${fragment ? ` · ${t('receivedChars')} ${fragment.length}` : ''}`),
-                  h('span', null, `${t('elapsed')} ${seconds}s`),
-                ),
-                h('div', { style: styles.track }, h('div', { style: { ...styles.fill, width: `${pct}%` } })),
-              )
-            : null,
-
-          phase === 'input'
+          phase !== 'result'
             ? h(
                 'div',
                 {
@@ -1124,7 +1171,23 @@ window.__ModuleLoader__.load({
                     if (dragDepth.current === 0) setDragging(false)
                   },
                 },
-                !text
+                busy || reading
+                  ? h(
+                      'div',
+                      { style: styles.zoneRunning },
+                      h('div', { style: styles.zoneRunningTitle },
+                        reading
+                          ? `${t('parsing')} ${fileName}${fileMeta ? `（${formatBytes(fileMeta.size)}）` : ''}…`
+                          : `${t('running')} · ${pct}%${fragment ? ` · ${t('receivedChars')} ${fragment.length}` : ''}`),
+                      reading
+                        ? h('div', { style: styles.track }, h('div', { style: { ...styles.fill, width: '35%', opacity: 0.65 } }))
+                        : h('div', { style: styles.track }, h('div', { style: { ...styles.fill, width: `${pct}%` } })),
+                      reading
+                        ? null
+                        : h('div', { style: styles.zoneRunningMeta }, `${t('elapsed')} ${seconds}s`),
+                    )
+                  : null,
+                !text && !busy && !reading
                   ? h(
                       'div',
                       { style: { ...styles.dropHint, color: dragging ? C.coral : C.muted } },
@@ -1146,7 +1209,7 @@ window.__ModuleLoader__.load({
                       h('span', null, dragging ? t('dropNow') : t('dropHint')),
                     )
                   : null,
-                h('textarea', {
+                busy || reading ? null : h('textarea', {
                   style: styles.zoneInput,
                   value: text,
                   onChange: (event) => {
@@ -1191,8 +1254,8 @@ window.__ModuleLoader__.load({
               )
             : null,
 
-          status
-            ? h('div', { style: status.ok ? styles.bannerOk : styles.bannerErr }, status.text)
+          status && !status.ok
+            ? h('div', { style: styles.bannerErr }, status.text)
             : null,
 
           fragment ? h('div', { ref: hostRef, style: styles.docHost }) : null,

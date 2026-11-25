@@ -680,9 +680,14 @@ export function apply(ctx) {
     } catch {
       return sendJson(res, 400, { error: 'invalid JSON body' })
     }
-    const dir = String(payload?.dir || '')
-    if (!dir) return sendJson(res, 400, { error: '缺少目录' })
+    // No dir means "use the default": Documents/ERA-英语阅读分析, so history is
+    // recorded without asking on first run.
+    let dir = String(payload?.dir || '')
     try {
+      if (!dir) {
+        const { homedir } = await import('node:os')
+        dir = join(homedir(), 'Documents', 'ERA-英语阅读分析')
+      }
       // Assign first: storeKindDir() resolves against it.
       storeDir = dir
       await mkdir(storeKindDir('history'), { recursive: true })
