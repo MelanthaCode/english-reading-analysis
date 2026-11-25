@@ -226,7 +226,7 @@ window.__ModuleLoader__.load({
       zone: {
         display: 'flex',
         flexDirection: 'column',
-        minHeight: 220,
+        minHeight: 268,
         borderRadius: 10,
         border: `1.5px dashed #d9c9b2`,
         background: C.paper2,
@@ -237,7 +237,7 @@ window.__ModuleLoader__.load({
       zoneInput: {
         flex: 1,
         width: '100%',
-        minHeight: 170,
+        minHeight: 208,
         padding: '18px 20px 8px',
         border: 'none',
         outline: 'none',
@@ -306,6 +306,7 @@ window.__ModuleLoader__.load({
       },
       track: {
         position: 'relative',
+        width: '100%',
         height: 6,
         borderRadius: 999,
         background: C.soft,
@@ -427,11 +428,11 @@ window.__ModuleLoader__.load({
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 14,
-        padding: '40px 28px',
-        minHeight: 190,
+        gap: 10,
+        padding: '0 56px',
         fontFamily: C.head,
         color: C.ink,
+        boxSizing: 'border-box',
       },
       zoneRunningTitle: { fontSize: 14, letterSpacing: '.01em' },
       zoneRunningMeta: { fontSize: 12, color: C.muted, fontVariantNumeric: 'tabular-nums' },
@@ -1175,16 +1176,33 @@ window.__ModuleLoader__.load({
                   ? h(
                       'div',
                       { style: styles.zoneRunning },
-                      h('div', { style: styles.zoneRunningTitle },
-                        reading
-                          ? `${t('parsing')} ${fileName}${fileMeta ? `（${formatBytes(fileMeta.size)}）` : ''}…`
-                          : `${t('running')} · ${pct}%${fragment ? ` · ${t('receivedChars')} ${fragment.length}` : ''}`),
-                      reading
-                        ? h('div', { style: styles.track }, h('div', { style: { ...styles.fill, width: '35%', opacity: 0.65 } }))
-                        : h('div', { style: styles.track }, h('div', { style: { ...styles.fill, width: `${pct}%` } })),
-                      reading
-                        ? null
-                        : h('div', { style: styles.zoneRunningMeta }, `${t('elapsed')} ${seconds}s`),
+                      h(
+                        'div',
+                        { style: { width: '100%', maxWidth: 560 } },
+                        h(
+                          'div',
+                          { style: styles.barHead },
+                          h(
+                            'span',
+                            null,
+                            reading
+                              ? `${t('parsing')} ${fileName}${fileMeta ? `（${formatBytes(fileMeta.size)}）` : ''}…`
+                              : `${t('running')} · ${pct}%${fragment ? ` · ${t('receivedChars')} ${fragment.length}` : ''}`,
+                          ),
+                          reading ? null : h('span', null, `${t('elapsed')} ${seconds}s`),
+                        ),
+                        h(
+                          'div',
+                          { style: styles.track },
+                          h('div', {
+                            style: {
+                              ...styles.fill,
+                              width: reading ? '35%' : `${pct}%`,
+                              opacity: reading ? 0.65 : 1,
+                            },
+                          }),
+                        ),
+                      ),
                     )
                   : null,
                 !text && !busy && !reading

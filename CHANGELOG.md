@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.13.1 — 2026-11-25
+
+- The box keeps one height across empty, reading and running states, so it no
+  longer grows and snaps back while a file is parsed.
+- The progress bar is the previous one again: a header with the percentage and the
+  elapsed time, and a full-width track and fill inside the box. The track had lost
+  its `width: 100%`, which collapsed it to nothing in a centred flex column.
+
 ## 1.13.0 — 2026-11-25
 
 - History records itself on first run: when no folder is set yet, the Host creates
