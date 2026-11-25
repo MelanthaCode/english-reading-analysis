@@ -87,6 +87,7 @@ window.__ModuleLoader__.load({
       kindScan: '扫描件',
       kindImage: '图片',
       readFail: '读取失败',
+      receivedChars: '已收到',
       noFile: '没有收到文件——当前环境可能不允许拖放，请点「选择文件」',
       pickFile: '选择文件',
       or: '或',
@@ -153,6 +154,7 @@ window.__ModuleLoader__.load({
       kindScan: 'scanned pages',
       kindImage: 'image',
       readFail: 'Could not read',
+      receivedChars: 'received',
       noFile: 'No file received — dragging may be blocked here; use “Choose file”',
       pickFile: 'Choose file',
       or: 'or',
@@ -823,6 +825,33 @@ window.__ModuleLoader__.load({
         setStatus(null)
       }
 
+      const loadCss = React.useCallback(async () => {
+        if (docCss) return
+        try {
+          const response = await fetch(`${API}/style.css`)
+          const raw = await response.text()
+          const faces = (raw.match(/@font-face\{[\s\S]*?\}\s*/g) || []).join('\n')
+          setFonts(faces)
+          setRawCss(raw)
+          setDocCss(toShadowCss(raw.replace(/@font-face\{[\s\S]*?\}\s*/g, '')))
+        } catch {
+          setDocCss('')
+        }
+      }, [docCss])
+
+      React.useEffect(() => {
+        void loadCss()
+      }, [loadCss])
+
+      // Paint the document into its own shadow root: isolation without rewriting
+      // any selector, and no iframe to fight over height.
+      React.useEffect(() => {
+        const host = hostRef.current
+        if (!host || !docCss) return
+        const root = host.shadowRoot || host.attachShadow({ mode: 'open' })
+        root.innerHTML = `<style>${docCss}</style><div class="er-doc">${sanitize(fragment)}</div>`
+      }, [fragment, docCss])
+
       /** Read a dropped file through the Host, reporting size and outcome. */
       const readDropped = async (file) => {
         const sizeLabel = formatBytes(file.size)
@@ -1047,7 +1076,7 @@ window.__ModuleLoader__.load({
                 h(
                   'div',
                   { style: styles.barHead },
-                  h('span', null, `${t('running')} · ${pct}%`),
+                  h('span', null, `${t('running')} · ${pct}%${fragment ? ` · ${t('receivedChars')} ${fragment.length}` : ''}`),
                   h('span', null, `${t('elapsed')} ${seconds}s`),
                 ),
                 h('div', { style: styles.track }, h('div', { style: { ...styles.fill, width: `${pct}%` } })),

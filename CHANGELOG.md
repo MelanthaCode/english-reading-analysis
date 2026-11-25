@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.12.1 — 2026-11-25
+
+- Restored the two pieces that made an analysis appear to hang: `loadCss` (called
+  before the request, so an undefined reference aborted the run) and the shadow
+  root that paints the streamed document. Results were never drawn without them.
+- The running header shows how many characters have arrived, so a stalled stream is
+  visible rather than guessed at.
+- `tests/render-smoke.mjs` now fails when a helper used by the component has no
+  definition, and requires the shadow renderer to exist.
+
 ## 1.12.0 — 2026-11-24
 
 - Restored the progress timer, which an earlier refactor had removed: the bar sat

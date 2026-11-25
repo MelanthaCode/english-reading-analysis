@@ -39,6 +39,15 @@ const src = readFileSync(new URL('../dsh-plugin/client.js', import.meta.url), 'u
 new Function('window', 'document', 'require', 'module', 'exports', src)(globalThis.window, globalThis.document, require, {}, {})
 
 if (!factory) { console.log('✗ 模块未注册'); process.exit(1) }
+// Guard against helpers that earlier edits deleted while the call sites stayed:
+// a missing definition only fails when that code path finally runs.
+{
+  const required = ['loadCss', 'readDropped', 'fileFromTransfer', 'applyExtract', 'documentFor', 'renderList', 'postJson']
+  const missing = required.filter((name) => !new RegExp(`(?:const|function)\\s+${name}\\b`).test(src))
+  if (missing.length) { console.log('✗ 缺少定义:', missing.join(', ')); process.exit(1) }
+  if (!src.includes('attachShadow')) { console.log('✗ 缺少 shadow root 渲染'); process.exit(1) }
+  console.log('✓ 关键函数定义齐全')
+}
 // 样式/文案键必须齐全：缺失只会静默降级，界面上看不出来
 {
   const css = readFileSync(new URL('../dsh-plugin/client.js', import.meta.url), 'utf8')
