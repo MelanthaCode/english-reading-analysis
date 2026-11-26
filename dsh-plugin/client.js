@@ -90,7 +90,6 @@ window.__ModuleLoader__.load({
       receivedChars: '已收到',
       emptyResult: '模型没有返回任何内容，请重试',
       loadedTitle: '已载入',
-      renameTitle: '修改标题',
       noFile: '没有收到文件——当前环境可能不允许拖放，请点「选择文件」',
       pickFile: '选择文件',
       or: '或',
@@ -160,7 +159,6 @@ window.__ModuleLoader__.load({
       receivedChars: 'received',
       emptyResult: 'The model returned nothing — try again',
       loadedTitle: 'Loaded',
-      renameTitle: 'Rename',
       noFile: 'No file received — dragging may be blocked here; use “Choose file”',
       pickFile: 'Choose file',
       or: 'or',
@@ -942,19 +940,7 @@ window.__ModuleLoader__.load({
           star.textContent = isFavoriteRef.current ? '★' : '☆'
           if (isFavoriteRef.current) star.classList.add('on')
 
-          const title = document.createElement('span')
-          title.className = 'era-title'
-          while (heading.firstChild) title.appendChild(heading.firstChild)
-
-          const pencil = document.createElement('button')
-          pencil.type = 'button'
-          pencil.setAttribute('data-era-act', 'edit')
-          pencil.setAttribute('title', t('renameTitle'))
-          pencil.textContent = '✎'
-
-          heading.appendChild(star)
-          heading.appendChild(title)
-          heading.appendChild(pencil)
+          heading.insertBefore(star, heading.firstChild)
         })
       }, [t])
 
@@ -979,51 +965,21 @@ window.__ModuleLoader__.load({
         })
       }, [isFavorite])
 
-      // Delegated clicks: star toggles the favourite, pencil edits the heading.
+      // Delegated clicks: the in-document star toggles the same favourite.
       React.useEffect(() => {
         const host = hostRef.current
         if (!host) return
-        const commit = (heading) => {
-          const title = heading.querySelector('.era-title')
-          const next = title ? title.textContent.trim() : ''
-          heading.setAttribute('contenteditable', 'false')
-          if (next) setPdfTitle(next)
-        }
         const onClick = (event) => {
           const path = event.composedPath ? event.composedPath() : []
           const button = path.find((node) => node && node.dataset && node.dataset.eraAct)
           if (!button) return
           event.preventDefault()
           event.stopPropagation()
-          const heading = button.closest('h2')
-          if (button.dataset.eraAct === 'star') {
-            toggleFavorite()
-            return
-          }
-          if (button.dataset.eraAct === 'edit' && heading) {
-            const editing = heading.getAttribute('contenteditable') === 'true'
-            if (editing) {
-              commit(heading)
-            } else {
-              heading.setAttribute('contenteditable', 'true')
-              const title = heading.querySelector('.era-title')
-              if (title) {
-                title.focus()
-                const selection = document.getSelection()
-                if (selection) selection.selectAllChildren(title)
-              }
-            }
-          }
-        }
-        const onFocusOut = (event) => {
-          const heading = event.target && event.target.closest ? event.target.closest('h2[contenteditable="true"]') : null
-          if (heading) commit(heading)
+          if (button.dataset.eraAct === 'star') toggleFavorite()
         }
         host.addEventListener('click', onClick)
-        host.addEventListener('focusout', onFocusOut)
         return () => {
           host.removeEventListener('click', onClick)
-          host.removeEventListener('focusout', onFocusOut)
         }
       }, [toggleFavorite])
 
@@ -1546,9 +1502,6 @@ window.__ModuleLoader__.load({
         line-height: 1; transition: color 140ms ease;
       }
       .er-doc h2 [data-era-act="star"].on { color: #ffcc2d; }
-      .er-doc h2 [data-era-act="edit"]:hover { color: #f9564e; }
-      .er-doc h2[contenteditable="true"] { outline: 1px dashed #e9d3bb; outline-offset: 5px; border-radius: 3px; }
-      .er-doc h2 .era-title { outline: none; }
     `
 
     const FORMAT_ICONS = ['PDF', 'DOCX', 'MD', 'IMG'].map((label) => ({
