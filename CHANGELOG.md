@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.14.0 — 2026-11-26
+
+- The document's own headings carry a star and a pencil: the star toggles the same
+  favourite as the one under the document, and the pencil makes the title editable
+  in place. A renamed title becomes the favourite's name and the PDF file name.
+- Handled through one delegated listener on the shadow host, since React cannot
+  attach handlers inside the shadow root.
+
 ## 1.13.9 — 2026-11-25
 
 - The star is back in the result row: ☆ saves the analysis to favourites, ★ takes
